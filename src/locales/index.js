@@ -66,7 +66,11 @@ export const messages = {
       medium: 'Medium',
       hard: 'Hard',
       solve: 'Solve',
-      successRate: 'Success Rate: {rate}'
+      successRate: 'Success Rate: {rate}',
+      generateProblems: 'Generate Problems',
+      generateSolutions: 'Generate Solutions',
+      generatingProblems: 'Generating new problems...',
+      generatingSolutions: 'Generating solutions...'
     }
   },
   zh: {
@@ -136,7 +140,11 @@ export const messages = {
       medium: '中等',
       hard: '困难',
       solve: '开始解题',
-      successRate: '通过率：{rate}'
+      successRate: '通过率：{rate}',
+      generateProblems: '生成题目',
+      generateSolutions: '生成题解',
+      generatingProblems: '正在生成新题目...',
+      generatingSolutions: '正在生成题解...'
     }
   },
   ja: {
@@ -206,7 +214,11 @@ export const messages = {
       medium: '普通',
       hard: '難しい',
       solve: '解く',
-      successRate: '成功率：{rate}'
+      successRate: '成功率：{rate}',
+      generateProblems: '問題を生成',
+      generateSolutions: '解答を生成',
+      generatingProblems: '新しい問題を生成中...',
+      generatingSolutions: '解答を生成中...'
     }
   }
 }

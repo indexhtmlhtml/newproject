@@ -32,6 +32,33 @@
     </header>
 
     <main class="main-content">
+      <div class="ai-actions">
+        <button class="ai-btn generate-problems" @click="generateProblems">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M19 11c0-3.87-3.13-7-7-7-3.22 0-5.93 2.18-6.74 5.15C2.82 9.71 1 11.89 1 14.5 1 17.54 3.46 20 6.5 20h12c2.49 0 4.5-2.01 4.5-4.5 0-2.19-1.56-4-3.63-4.38zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+          </svg>
+          {{ t('problems.generateProblems') }}
+        </button>
+        <button class="ai-btn generate-solutions" @click="generateSolutions">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+          </svg>
+          {{ t('problems.generateSolutions') }}
+        </button>
+      </div>
+
+      <div v-if="isGenerating" class="generation-dialog">
+        <div class="dialog-content">
+          <div class="generation-status">
+            <div class="loading-spinner"></div>
+            <p>{{ generationStatus }}</p>
+          </div>
+          <div class="progress-bar">
+            <div class="progress" :style="{ width: `${generationProgress}%` }"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="problems-list">
         <div v-for="problem in filteredProblems" 
              :key="problem.id" 
@@ -68,6 +95,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { messages } from '../locales'
+import { generateProblems, generateSolutions, generateHints } from '../services/ai'
 
 const router = useRouter()
 const route = useRoute()
@@ -76,7 +104,6 @@ const currentLocale = ref('zh')
 const searchQuery = ref('')
 const difficulty = ref('')
 
-// 模拟题目数据
 const problems = ref([
   {
     id: 1,
@@ -132,6 +159,103 @@ const t = (key, params = {}) => {
     return result.replace(/\{(\w+)\}/g, (_, key) => params[key] || '')
   }
   return key
+}
+
+const isGenerating = ref(false)
+const generationProgress = ref(0)
+const generationStatus = ref('')
+
+const generateProblems = async () => {
+  try {
+    isGenerating.value = true
+    generationStatus.value = t('problems.generatingProblems')
+    
+    const updateProgress = setInterval(() => {
+      if (generationProgress.value < 90) {
+        generationProgress.value += 10
+      }
+    }, 500)
+
+    const newProblems = await generateProblems({
+      category: category,
+      count: 5,
+      difficulty: difficulty.value || 'mixed',
+      language: currentLocale.value
+    })
+
+    clearInterval(updateProgress)
+    generationProgress.value = 100
+
+    problems.value = [...problems.value, ...newProblems]
+
+    showNotification(t('problems.generationSuccess'))
+
+  } catch (error) {
+    console.error('Failed to generate problems:', error)
+    showNotification(t('problems.generationError'), 'error')
+  } finally {
+    setTimeout(() => {
+      isGenerating.value = false
+      generationProgress.value = 0
+    }, 500)
+  }
+}
+
+const generateSolutions = async () => {
+  try {
+    isGenerating.value = true
+    generationStatus.value = t('problems.generatingSolutions')
+    
+    const updateProgress = setInterval(() => {
+      if (generationProgress.value < 90) {
+        generationProgress.value += 10
+      }
+    }, 500)
+
+    const solutions = await generateSolutions({
+      problems: problems.value,
+      language: currentLocale.value,
+      includeExplanation: true
+    })
+
+    clearInterval(updateProgress)
+    generationProgress.value = 100
+
+    problems.value = problems.value.map((problem, index) => ({
+      ...problem,
+      solution: solutions[index]
+    }))
+
+    showNotification(t('problems.solutionsGenerated'))
+
+  } catch (error) {
+    console.error('Failed to generate solutions:', error)
+    showNotification(t('problems.generationError'), 'error')
+  } finally {
+    setTimeout(() => {
+      isGenerating.value = false
+      generationProgress.value = 0
+    }, 500)
+  }
+}
+
+const getHints = async (problemId) => {
+  try {
+    const problem = problems.value.find(p => p.id === problemId)
+    const hints = await generateHints({
+      problemId,
+      difficulty: problem.difficulty,
+      count: 3
+    })
+    
+    problems.value = problems.value.map(p => 
+      p.id === problemId ? { ...p, hints } : p
+    )
+
+  } catch (error) {
+    console.error('Failed to generate hints:', error)
+    showNotification(t('problems.hintsError'), 'error')
+  }
 }
 </script>
 
@@ -341,5 +465,93 @@ const t = (key, params = {}) => {
   .problem-meta {
     justify-content: center;
   }
+}
+
+.ai-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ai-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.ai-btn.generate-problems {
+  background: #4F6EF7;
+  color: white;
+}
+
+.ai-btn.generate-solutions {
+  background: #E8F5E9;
+  color: #4CAF50;
+}
+
+.ai-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.generation-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.generation-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4F6EF7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #f3f3f3;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background: #4F6EF7;
+  transition: width 0.3s ease;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style> 

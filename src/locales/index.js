@@ -57,6 +57,16 @@ export const messages = {
           desc: 'Unit testing, integration testing and QA'
         }
       }
+    },
+    problems: {
+      back: 'Back',
+      searchPlaceholder: 'Search problems...',
+      allDifficulties: 'All Difficulties',
+      easy: 'Easy',
+      medium: 'Medium',
+      hard: 'Hard',
+      solve: 'Solve',
+      successRate: 'Success Rate: {rate}'
     }
   },
   zh: {
@@ -117,6 +127,16 @@ export const messages = {
           desc: '单元测试、集成测试和质量保证'
         }
       }
+    },
+    problems: {
+      back: '返回',
+      searchPlaceholder: '搜索题目...',
+      allDifficulties: '所有难度',
+      easy: '简单',
+      medium: '中等',
+      hard: '困难',
+      solve: '开始解题',
+      successRate: '通过率：{rate}'
     }
   },
   ja: {
@@ -177,6 +197,16 @@ export const messages = {
           desc: 'ユニットテスト、統合テスト、品質保証'
         }
       }
+    },
+    problems: {
+      back: '戻る',
+      searchPlaceholder: '問題を検索...',
+      allDifficulties: 'すべての難易度',
+      easy: '易しい',
+      medium: '普通',
+      hard: '難しい',
+      solve: '解く',
+      successRate: '成功率：{rate}'
     }
   }
 }

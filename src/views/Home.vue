@@ -177,8 +177,7 @@ const logout = () => {
 }
 
 const goToSection = (section) => {
-  // 这里可以添加跳转到具体题库的逻辑
-  console.log(`Navigating to ${section}...`)
+  router.push(`/problems/${section}`)
 }
 
 const languages = {

@@ -3,6 +3,7 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
 import Problems from '../views/Problems.vue'
+import SolveProblem from '../views/SolveProblem.vue'
 
 const routes = [
   {
@@ -28,6 +29,11 @@ const routes = [
     path: '/problems/:category',
     name: 'Problems',
     component: Problems
+  },
+  {
+    path: '/problems/:category/:id/solve',
+    name: 'SolveProblem',
+    component: SolveProblem
   },
   {
     path: '/create-paper',

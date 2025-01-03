@@ -55,9 +55,11 @@
             </div>
           </div>
 
-          <button class="solve-btn" @click="solveProblem(problem.id)">
-            {{ t('problems.solve') }}
-          </button>
+          <div class="problem-actions">
+            <button class="solve-btn" @click="solveProblem(problem.id)">
+              {{ t('problems.solve') }}
+            </button>
+          </div>
         </div>
       </div>
     </main>
@@ -117,8 +119,8 @@ const goBack = () => {
   router.push('/home')
 }
 
-const solveProblem = (problemId) => {
-  console.log(`Solving problem ${problemId}`)
+const solveProblem = (id) => {
+  router.push(`/problems/${route.params.category}/${id}/solve`)
 }
 
 const t = (key, params = {}) => {

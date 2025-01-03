@@ -6,6 +6,13 @@
            :class="['message', message.role]">
         <div class="message-content" v-html="formatMessage(message.content)"></div>
       </div>
+      <div v-if="isLoading" class="message assistant loading">
+        <div class="typing-indicator">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
     </div>
     
     <div class="chat-input">
@@ -32,30 +39,22 @@
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { messages as i18nMessages } from '../locales'
+import { useLanguageStore } from '../stores/language'
+import { useI18n } from 'vue-i18n'
 
-const props = defineProps({
-  currentLocale: {
-    type: String,
-    required: true
-  }
-})
-
-const API_URL =  'https://api.deepseek.com/v1/chat/completions'
+const languageStore = useLanguageStore()
+const { t } = useI18n()
+const API_URL = 'https://api.deepseek.com/v1/chat/completions'
 const API_KEY = 'sk-1bb183d7bd70432e9f0deafbbfe89bb9'
-const messages = ref([])
+const messages = ref([
+  {
+    role: 'assistant',
+    content: t('ai.greeting')
+  }
+])
 const userInput = ref('')
 const isLoading = ref(false)
 const messagesContainer = ref(null)
-
-const t = (key) => {
-  const keys = key.split('.')
-  let result = i18nMessages[props.currentLocale]
-  for (const k of keys) {
-    if (!result) return key
-    result = result[k]
-  }
-  return result || key
-}
 
 const formatMessage = (content) => {
   return content
@@ -84,11 +83,18 @@ const sendMessage = async () => {
     userInput.value = ''
     isLoading.value = true
 
+    console.log('Sending message:', {
+      userMessage,
+      currentLanguage: languageStore.currentLanguage
+    })
+
     const response = await axios.post(API_URL, {
       messages: [
         {
           role: 'system',
-          content: `你是一个专业的编程助手，请用${props.currentLocale === 'zh' ? '中文' : props.currentLocale === 'ja' ? '日语' : '英文'}回答问题。`
+          content: `你是一个专业的编程助手，请用${languageStore.currentLanguage === 'zh' ? '中文' : 
+                                                languageStore.currentLanguage === 'ja' ? '日语' : 
+                                                '英文'}回答问题。`
         },
         ...messages.value
       ],
@@ -102,18 +108,19 @@ const sendMessage = async () => {
       }
     })
 
-    if (response.data.choices?.[0]?.message) {
-      messages.value.push({
-        role: 'assistant',
-        content: response.data.choices[0].message.content
-      })
+    console.log('API Response:', response.data)
+
+    const assistantMessage = {
+      role: 'assistant',
+      content: response.data.choices?.[0]?.message?.content || '抱歉，我现在无法回答。请稍后再试。'
     }
+
+    messages.value.push(assistantMessage)
   } catch (error) {
     console.error('Chat error:', error)
-    messages.value = messages.value.filter(m => m.content !== userMessage.content)
     messages.value.push({
-      role: 'system',
-      content: `Error: ${error.response?.data?.error || error.message}`
+      role: 'assistant',
+      content: `错误：${error.response?.data?.error || error.message || '发生未知错误'}`
     })
   } finally {
     isLoading.value = false
@@ -121,13 +128,12 @@ const sendMessage = async () => {
   }
 }
 
-// 监听语言变化
-watch(() => props.currentLocale, (newLocale) => {
-  // 更新系统消息的语言
-  const systemMessage = i18nMessages[newLocale].ai.greeting
-  if (messages.value[0]?.role === 'assistant') {
-    messages.value[0].content = systemMessage
-  }
+// 监听语言变化，更新欢迎消息
+watch(() => languageStore.currentLanguage, () => {
+  messages.value = [{
+    role: 'assistant',
+    content: t('ai.greeting')
+  }]
 })
 
 onMounted(() => {
@@ -160,6 +166,8 @@ onMounted(() => {
   padding: 12px 16px;
   border-radius: 12px;
   line-height: 1.5;
+  margin-bottom: 16px;
+  animation: slideIn 0.3s ease;
 }
 
 .message.user {
@@ -241,5 +249,70 @@ onMounted(() => {
 
 .message code {
   font-family: monospace;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px;
+  background: #f0f2ff;
+  border-radius: 16px;
+  width: fit-content;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #4F6EF7;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.4;
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 0.8;
+  }
+}
+
+.message.loading {
+  opacity: 0.8;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.8;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style> 

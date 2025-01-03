@@ -353,6 +353,114 @@ app.use((req, res) => {
   })
 })
 
+// 模拟题目数据
+const problems = {
+  '1': {
+    id: '1',
+    title: '两数之和',
+    description: `给定一个整数数组 nums 和一个目标值 target，请你在该数组中找出和为目标值的那两个整数，并返回他们的数组下标。
+
+你可以假设每种输入只会对应一个答案。但是，数组中同一个元素不能使用两遍。
+
+**示例:**
+
+\`\`\`
+给定 nums = [2, 7, 11, 15], target = 9
+因为 nums[0] + nums[1] = 2 + 7 = 9
+所以返回 [0, 1]
+\`\`\``,
+    difficulty: 'easy',
+    examples: [
+      {
+        input: '[2, 7, 11, 15]\n9',
+        output: '[0, 1]'
+      },
+      {
+        input: '[3, 2, 4]\n6',
+        output: '[1, 2]'
+      }
+    ],
+    template: `def twoSum(nums, target):
+    # 在这里写下你的代码
+    pass
+
+# 测试代码
+nums = [2, 7, 11, 15]
+target = 9
+print(twoSum(nums, target))`,
+    testCases: [
+      {
+        input: {
+          nums: [2, 7, 11, 15],
+          target: 9
+        },
+        expected: [0, 1]
+      },
+      {
+        input: {
+          nums: [3, 2, 4],
+          target: 6
+        },
+        expected: [1, 2]
+      }
+    ]
+  }
+  // 可以添加更多题目...
+}
+
+// 获取题目详情
+app.get('/api/problems/:id', (req, res) => {
+  const problem = problems[req.params.id]
+  if (problem) {
+    res.json(problem)
+  } else {
+    res.status(404).json({ error: 'Problem not found' })
+  }
+})
+
+// 运行代码
+app.post('/api/run-code', (req, res) => {
+  const { problemId, code, language } = req.body
+  const problem = problems[problemId]
+
+  if (!problem) {
+    return res.status(404).json({ error: 'Problem not found' })
+  }
+
+  // 模拟代码运行结果
+  const results = problem.testCases.map((testCase, index) => ({
+    status: Math.random() > 0.5 ? 'success' : 'error',
+    input: JSON.stringify(testCase.input),
+    expected: JSON.stringify(testCase.expected),
+    actual: JSON.stringify([0, 1]),
+    error: null
+  }))
+
+  res.json({ results })
+})
+
+// 提交解答
+app.post('/api/submit-solution', (req, res) => {
+  const { problemId, code, language } = req.body
+  const problem = problems[problemId]
+
+  if (!problem) {
+    return res.status(404).json({ error: 'Problem not found' })
+  }
+
+  // 模拟提交结果
+  res.json({
+    success: true,
+    message: '提交成功！',
+    results: problem.testCases.map((testCase, index) => ({
+      status: 'success',
+      input: JSON.stringify(testCase.input),
+      expected: JSON.stringify(testCase.expected),
+      actual: JSON.stringify([0, 1])
+    }))
+  })
+})
+
 const PORT = 3005
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://localhost:${PORT}`)

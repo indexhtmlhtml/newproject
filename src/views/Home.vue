@@ -9,14 +9,14 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
               </svg>
-              {{ currentLocale === 'en' ? 'English' : currentLocale === 'zh' ? '中文' : '日本語' }}
+              {{ Object.entries(languages).find(([_, code]) => code === languageStore.currentLanguage)?.[0] || '中文' }}
             </button>
             <div v-if="showLanguageMenu" class="language-menu">
               <button 
                 v-for="(lang, name) in languages" 
                 :key="lang"
                 @click="changeLanguage(lang)"
-                :class="{ active: currentLocale === lang }"
+                :class="{ active: languageStore.currentLanguage === lang }"
               >
                 {{ name }}
               </button>
@@ -45,14 +45,30 @@
       <div class="special-features">
         <div class="feature-card" @click="router.push('/create-paper')">
           <div class="feature-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
-              <path fill="#4F6EF7" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
-              <path fill="#4F6EF7" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
-            </svg>
+            <div class="icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
+              </svg>
+            </div>
           </div>
           <div class="feature-content">
             <h3>{{ t('paper.createPaper') }}</h3>
             <p>{{ t('paper.createPaperDesc') }}</p>
+            <div class="feature-meta">
+              <span class="meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                </svg>
+                2-5 分钟
+              </span>
+              <span class="meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
+                </svg>
+                AI 生成
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -74,7 +90,9 @@
               </svg>
             </button>
           </div>
-          <AIChatBox :currentLocale="currentLocale" />
+          <div class="chat-modal-body">
+            <AIChatBox />
+          </div>
         </div>
       </div>
 
@@ -97,9 +115,12 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { messages } from '../locales'
 import AIChatBox from '../components/AIChatBox.vue'
+import { useLanguageStore } from '../stores/language'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
-const currentLocale = ref('en')
+const languageStore = useLanguageStore()
+const { t } = useI18n()
 const showLanguageMenu = ref(false)
 const showChat = ref(false)
 
@@ -197,17 +218,8 @@ const toggleLanguageMenu = () => {
 }
 
 const changeLanguage = (lang) => {
-  currentLocale.value = lang
+  languageStore.setLanguage(lang)
   showLanguageMenu.value = false
-}
-
-const t = (key) => {
-  const keys = key.split('.')
-  let result = messages[currentLocale.value]
-  for (const k of keys) {
-    result = result[k]
-  }
-  return result
 }
 
 const logout = () => {
@@ -499,35 +511,33 @@ const languages = {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease;
 }
 
 .chat-modal-content {
   background: white;
-  border-radius: 16px;
+  border-radius: 12px;
   width: 90%;
   max-width: 800px;
   height: 80vh;
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.3s ease;
+  overflow: hidden;
 }
 
 .chat-modal-header {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid #eee;
 }
 
-.chat-modal-header h3 {
-  margin: 0;
-  font-size: 20px;
-  color: #333;
+.chat-modal-body {
+  flex: 1;
+  overflow: hidden;
 }
 
 .close-btn {
@@ -536,39 +546,16 @@ const languages = {
   cursor: pointer;
   padding: 4px;
   color: #666;
-  transition: all 0.3s ease;
+  transition: color 0.3s;
 }
 
 .close-btn:hover {
-  color: #333;
-  transform: rotate(90deg);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* 修改 AIChatBox 容器样式 */
-:deep(.chat-box) {
-  height: calc(80vh - 70px);
-  border-radius: 0 0 16px 16px;
-  box-shadow: none;
+  color: #4F6EF7;
 }
 
 .special-features {
   margin-bottom: 32px;
+  padding: 0 20px;
 }
 
 .feature-card {
@@ -583,6 +570,8 @@ const languages = {
   gap: 24px;
   max-width: 600px;
   margin: 0 auto;
+  position: relative;
+  overflow: hidden;
 }
 
 .feature-card:hover {
@@ -590,19 +579,80 @@ const languages = {
   box-shadow: 0 8px 24px rgba(79, 110, 247, 0.2);
 }
 
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at top right, rgba(255,255,255,0.1) 0%, transparent 60%);
+}
+
 .feature-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.icon-wrapper {
   background: rgba(255, 255, 255, 0.2);
   padding: 16px;
   border-radius: 12px;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover .icon-wrapper {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.feature-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
 }
 
 .feature-content h3 {
   margin: 0 0 8px;
   font-size: 24px;
+  font-weight: 600;
 }
 
 .feature-content p {
   margin: 0;
   opacity: 0.8;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.feature-meta {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.meta-item svg {
+  opacity: 0.9;
+}
+
+@media (max-width: 640px) {
+  .feature-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 32px 20px;
+  }
+
+  .feature-meta {
+    justify-content: center;
+  }
 }
 </style>

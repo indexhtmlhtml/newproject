@@ -123,20 +123,32 @@
             @click="handleGeneratePaper"
             :disabled="isGenerating || !isValid"
           >
-            <span v-if="!isGenerating">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
-                <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
-              </svg>
-              {{ t('paper.generate') }}
-            </span>
-            <span v-else class="loading-spinner"></span>
+            <div class="btn-content">
+              <span v-if="!isGenerating">{{ t('paper.generate') }}</span>
+              <div v-else class="generating-status">
+                <div class="progress-bar">
+                  <div class="progress-indicator"></div>
+                </div>
+                <span class="status-text">{{ generatingStatus }}</span>
+              </div>
+            </div>
           </button>
         </section>
 
         <!-- 右侧预览区域 -->
         <section v-if="paper" class="preview-section">
-          <h2>{{ t('paper.preview') }}</h2>
+          <div class="preview-header">
+            <h2>{{ t('paper.preview') }}</h2>
+            <div class="preview-actions">
+              <button class="download-btn" @click="downloadPaper">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                {{ t('paper.download') }}
+              </button>
+            </div>
+          </div>
+          
           <div class="paper-preview">
             <div class="paper-header">
               <h3>{{ paper.title || t('paper.defaultTitle') }}</h3>
@@ -218,6 +230,19 @@
             </div>
           </div>
         </section>
+
+        <!-- 生成中的加载动画 -->
+        <div v-if="isGenerating && !paper" class="generating-overlay">
+          <div class="generating-animation">
+            <svg class="paper-icon" viewBox="0 0 24 24">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+              <path d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
+            </svg>
+            <div class="generating-text">
+              {{ generatingStatus }}
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -226,10 +251,14 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLanguageStore } from '../stores/language'
+import { useI18n } from 'vue-i18n'
 import { generatePaper as generatePaperAPI } from '../services/paper'
+import { downloadPaperAsWord } from '../utils/download'
 
 const router = useRouter()
-const currentLocale = ref('zh')
+const languageStore = useLanguageStore()
+const { t } = useI18n()
 
 // 题型配置
 const questionTypes = ref([
@@ -249,6 +278,15 @@ const selectedDifficulty = ref('medium')
 const duration = ref(90)
 const totalScore = ref(100)
 const isGenerating = ref(false)
+const generatingStatus = ref('')
+const generatingSteps = [
+  '正在分析题型要求...',
+  '正在设计题目结构...',
+  '正在生成题目内容...',
+  '正在优化答案解析...',
+  '正在完善试卷格式...'
+]
+let statusInterval
 const paper = ref(null)
 
 // 验证配置是否有效
@@ -258,34 +296,20 @@ const isValid = computed(() => {
   return hasQuestions && totalQuestions <= 20
 })
 
-// 翻译函数
-const t = (key) => {
-  // 这里使用简单的翻译实现，实际项目中应该使用 i18n 插件
-  const translations = {
-    'common.back': '返回',
-    'paper.title': '智能组卷',
-    'paper.settings': '试卷设置',
-    'paper.questionTypes.title': '题型设置',
-    'paper.questionTypes.choice': '选择题',
-    'paper.questionTypes.programming': '编程题',
-    'paper.questionTypes.completion': '填空题',
-    'paper.difficulty': '难度等级',
-    'paper.duration': '考试时长（分钟）',
-    'paper.totalScore': '总分',
-    'paper.generate': '生成试卷',
-    'paper.generating': '正在生成...',
-    'paper.preview': '试卷预览',
-    'problems.easy': '简单',
-    'problems.medium': '中等',
-    'problems.hard': '困难'
-  }
-  return translations[key] || key
-}
-
 // 生成试卷
 const handleGeneratePaper = async () => {
+  if (!isValid.value || isGenerating.value) return
+  
   try {
     isGenerating.value = true
+    // 开始状态更新循环
+    let stepIndex = 0
+    generatingStatus.value = generatingSteps[0]
+    statusInterval = setInterval(() => {
+      stepIndex = (stepIndex + 1) % generatingSteps.length
+      generatingStatus.value = generatingSteps[stepIndex]
+    }, 3000)
+
     const params = {
       duration: duration.value,
       totalScore: totalScore.value,
@@ -298,17 +322,23 @@ const handleGeneratePaper = async () => {
         }
         return acc
       }, {}),
-      language: currentLocale.value
+      language: languageStore.currentLanguage
     }
 
     const result = await generatePaperAPI(params)
     paper.value = result
   } catch (error) {
     console.error('Failed to generate paper:', error)
-    alert('生成试卷失败，请重试')
+    alert(t('paper.generateError'))
   } finally {
     isGenerating.value = false
+    clearInterval(statusInterval)
   }
+}
+
+const downloadPaper = () => {
+  if (!paper.value) return
+  downloadPaperAsWord(paper.value)
 }
 </script>
 
@@ -460,25 +490,33 @@ const handleGeneratePaper = async () => {
 }
 
 .generate-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: #4F6EF7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
   font-size: 16px;
-  font-weight: 500;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
-.generate-btn svg {
-  transition: transform 0.3s ease;
-}
-
-.generate-btn:hover:not(:disabled) svg {
-  transform: rotate(90deg);
+.generate-btn:hover:not(:disabled) {
+  background: #3D5CE5;
+  transform: translateY(-1px);
 }
 
 .generate-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+.btn-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 24px;
 }
 
 .preview-section {
@@ -628,5 +666,123 @@ const handleGeneratePaper = async () => {
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 16px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #4F6EF7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.download-btn:hover {
+  background: #3D5CE5;
+  transform: translateY(-1px);
+}
+
+.download-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.download-btn:hover svg {
+  transform: translateY(2px);
+}
+
+.generating-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.generating-animation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.paper-icon {
+  width: 64px;
+  height: 64px;
+  fill: #4F6EF7;
+  animation: pulse 2s infinite;
+}
+
+.generating-text {
+  font-size: 18px;
+  color: #333;
+  text-align: center;
+  min-width: 200px;
+}
+
+.generating-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(79, 110, 247, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-indicator {
+  height: 100%;
+  background: #4F6EF7;
+  width: 30%;
+  border-radius: 2px;
+  animation: progress 2s infinite;
+}
+
+.status-text {
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
 }
 </style>

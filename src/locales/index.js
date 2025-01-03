@@ -101,7 +101,8 @@ export const messages = {
       example: {
         input: '输入示例',
         output: '输出示例'
-      }
+      },
+      download: '下载试卷'
     }
   },
   zh: {
@@ -206,7 +207,8 @@ export const messages = {
       example: {
         input: '输入示例',
         output: '输出示例'
-      }
+      },
+      download: '下载试卷'
     }
   },
   ja: {
@@ -311,7 +313,8 @@ export const messages = {
       example: {
         input: '输入示例',
         output: '输出示例'
-      }
+      },
+      download: '下载试卷'
     }
   }
 }

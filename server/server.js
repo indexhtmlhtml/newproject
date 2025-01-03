@@ -172,6 +172,170 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
+// 生成试卷路由
+app.post('/api/generate-paper', async (req, res) => {
+  try {
+    const { duration, totalScore, difficulty, questionTypes, language } = req.body
+    console.log('Received paper generation request:', req.body)
+    
+    // 创建 WebSocket 连接
+    const ws = new WebSocket(getAuthUrl())
+    
+    let isResponseSent = false
+
+    ws.on('open', () => {
+      console.log('WebSocket connected')
+      
+      // 发送消息
+      const requestData = {
+        header: {
+          app_id: SPARK_CONFIG.APPID
+        },
+        parameter: {
+          chat: {
+            domain: "general",
+            temperature: 0.7,
+            max_tokens: 4096
+          }
+        },
+        payload: {
+          message: {
+            text: [{
+              role: 'system',
+              content: `你是一个专业的编程考试出题专家。请根据以下要求生成一份完整的编程试卷：
+                - 考试时长：${duration}分钟
+                - 总分：${totalScore}分
+                - 难度：${difficulty}
+                
+                题型要求：
+                ${Object.entries(questionTypes)
+                  .map(([type, config]) => 
+                    `- ${config.name}：${config.count}道，每题${config.score}分`
+                  ).join('\n')}
+                
+                请确保：
+                1. 题目难度符合要求，${difficulty === 'easy' ? '使用基础概念和简单逻辑' : 
+                   difficulty === 'medium' ? '包含中等复杂度的算法和数据结构' : 
+                   '涉及高级算法和系统设计'}
+                2. 选择题必须包含4个选项(A/B/C/D)，且只有一个正确答案
+                3. 编程题必须包含：
+                   - 清晰的问题描述
+                   - 输入输出格式说明
+                   - 示例输入输出
+                   - 完整的参考答案（包含代码）
+                4. 填空题应该简洁明确，答案应该是关键的代码片段或概念
+                5. 每道题目都要包含分值标注
+                
+                请用${language === 'zh' ? '中文' : '英文'}回答，
+                并以如下JSON格式返回：
+                {
+                  "title": "试卷标题",
+                  "choice": [
+                    {
+                      "content": "题目描述",
+                      "score": 分值,
+                      "options": {
+                        "A": "选项A",
+                        "B": "选项B",
+                        "C": "选项C",
+                        "D": "选项D"
+                      },
+                      "answer": "正确选项字母"
+                    }
+                  ],
+                  "programming": [
+                    {
+                      "content": "题目描述",
+                      "score": 分值,
+                      "example": {
+                        "input": "示例输入",
+                        "output": "示例输出"
+                      },
+                      "answer": "参考答案代码"
+                    }
+                  ],
+                  "completion": [
+                    {
+                      "content": "题目描述",
+                      "score": 分值,
+                      "answer": "答案"
+                    }
+                  ]
+                }`
+            }]
+          }
+        }
+      }
+      
+      console.log('Sending to WebSocket:', JSON.stringify(requestData, null, 2))
+      ws.send(JSON.stringify(requestData))
+    })
+
+    let responseText = ''
+    
+    ws.on('message', (data) => {
+      try {
+        const response = JSON.parse(data.toString())
+        console.log('Received WebSocket message:', response)
+        
+        if (response.payload && response.payload.choices) {
+          responseText += response.payload.choices.text || ''
+        }
+        if (response.header.code !== 0) {
+          ws.close()
+          if (!isResponseSent) {
+            isResponseSent = true
+            res.status(500).json({
+              error: 'Paper generation error',
+              details: response.header.message
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error)
+      }
+    })
+
+    ws.on('close', () => {
+      console.log('WebSocket closed')
+      if (responseText && !isResponseSent) {
+        try {
+          const paper = JSON.parse(responseText)
+          isResponseSent = true
+          res.json(paper)
+        } catch (error) {
+          console.error('Failed to parse paper:', error)
+          if (!isResponseSent) {
+            isResponseSent = true
+            res.status(500).json({
+              error: 'Invalid paper format',
+              details: error.message
+            })
+          }
+        }
+      }
+    })
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error)
+      if (!isResponseSent) {
+        isResponseSent = true
+        res.status(500).json({
+          error: 'WebSocket error',
+          message: error.message
+        })
+      }
+    })
+
+  } catch (error) {
+    console.error('Paper generation error:', error)
+    res.status(500).json({
+      error: 'Paper generation failed',
+      message: error.message
+    })
+  }
+})
+
 // 添加错误处理中间件
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err)

@@ -15,13 +15,26 @@
     </header>
 
     <main class="main-content">
-      <div class="paper-config">
+      <div class="paper-container">
+        <!-- 左侧配置区域 -->
         <section class="config-section">
-          <h2>{{ t('paper.settings') }}</h2>
-          
+          <div class="section-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94c0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6s-1.62 3.6-3.6 3.6z"/>
+            </svg>
+            <h2>{{ t('paper.settings') }}</h2>
+          </div>
+
           <!-- 题型配置 -->
           <div class="question-types">
-            <h3>{{ t('paper.questionTypes.title') }}</h3>
+            <div class="section-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
+              </svg>
+              <h3>{{ t('paper.questionTypes.title') }}</h3>
+            </div>
+
             <div class="type-grid">
               <div v-for="type in questionTypes" :key="type.id" class="type-item">
                 <label>{{ t(`paper.questionTypes.${type.id}`) }}</label>
@@ -40,7 +53,13 @@
 
           <!-- 难度选择 -->
           <div class="difficulty-section">
-            <h3>{{ t('paper.difficulty') }}</h3>
+            <div class="section-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2L4 8v12h16V8l-8-6zm0 2.8L18 10v8H6v-8l6-5.2z"/>
+              </svg>
+              <h3>{{ t('paper.difficulty') }}</h3>
+            </div>
+
             <div class="difficulty-options">
               <label 
                 v-for="diff in difficulties" 
@@ -59,7 +78,13 @@
 
           <!-- 时长设置 -->
           <div class="duration-section">
-            <h3>{{ t('paper.duration') }}</h3>
+            <div class="section-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8s8 3.58 8 8s-3.58 8-8 8zm.5-13H11v6l5.25 3.15l.75-1.23l-4.5-2.67z"/>
+              </svg>
+              <h3>{{ t('paper.duration') }}</h3>
+            </div>
+
             <div class="duration-control">
               <input 
                 type="range" 
@@ -74,13 +99,21 @@
 
           <!-- 总分设置 -->
           <div class="score-section">
-            <h3>{{ t('paper.totalScore') }}</h3>
+            <div class="section-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
+              </svg>
+              <h3>{{ t('paper.totalScore') }}</h3>
+            </div>
+
             <input 
               type="number" 
               v-model="totalScore" 
               min="50" 
               max="150" 
               step="10"
+              class="score-input"
             >
           </div>
 
@@ -90,13 +123,19 @@
             @click="handleGeneratePaper"
             :disabled="isGenerating || !isValid"
           >
-            <span v-if="!isGenerating">{{ t('paper.generate') }}</span>
+            <span v-if="!isGenerating">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
+              </svg>
+              {{ t('paper.generate') }}
+            </span>
             <span v-else class="loading-spinner"></span>
           </button>
         </section>
 
-        <!-- 预览区域 -->
-        <section class="preview-section" v-if="paper">
+        <!-- 右侧预览区域 -->
+        <section v-if="paper" class="preview-section">
           <h2>{{ t('paper.preview') }}</h2>
           <div class="paper-preview">
             <div class="paper-header">
@@ -319,36 +358,54 @@ const handleGeneratePaper = async () => {
   padding: 24px;
 }
 
-.paper-config {
+.paper-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
   display: grid;
   grid-template-columns: 400px 1fr;
-  gap: 24px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  gap: 32px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  color: #4F6EF7;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #666;
 }
 
 .config-section {
+  background: white;
   padding: 24px;
-  border-right: 1px solid #eee;
-}
-
-.config-section h2,
-.config-section h3 {
-  margin: 0 0 16px;
-  color: #333;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
 }
 
 .type-grid {
   display: grid;
   gap: 16px;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
 }
 
 .type-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .type-controls {
@@ -403,19 +460,20 @@ const handleGeneratePaper = async () => {
 }
 
 .generate-btn {
-  width: 100%;
-  padding: 12px;
-  margin-top: 24px;
-  background: #4F6EF7;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
 }
 
-.generate-btn:hover:not(:disabled) {
-  background: #3D5CE5;
+.generate-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.generate-btn:hover:not(:disabled) svg {
+  transform: rotate(90deg);
 }
 
 .generate-btn:disabled {
@@ -562,5 +620,13 @@ const handleGeneratePaper = async () => {
   background: #f1f3f5;
   border-radius: 4px;
   overflow-x: auto;
+}
+
+.score-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
 }
 </style>

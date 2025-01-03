@@ -13,6 +13,13 @@ export default defineConfig({
     port: "3000",
     fs: {
       strict: false
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3005',
+        changeOrigin: true,
+        secure: false
+      }
     }
   },
   resolve: {

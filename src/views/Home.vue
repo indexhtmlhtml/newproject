@@ -42,6 +42,27 @@
       <h2 class="welcome-text">{{ t('home.welcome') }}</h2>
       <p class="subtitle">{{ t('home.subtitle') }}</p>
 
+      <button class="ai-assistant-btn" @click="showChat = true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6s6-2.69 6-6s-2.69-6-6-6zm0 9c-1.66 0-3-1.34-3-3s1.34-3 3-3s3 1.34 3 3s-1.34 3-3 3z"/>
+        </svg>
+        <span>AI 助手</span>
+      </button>
+
+      <div v-if="showChat" class="chat-modal">
+        <div class="chat-modal-content">
+          <div class="chat-modal-header">
+            <h3>AI 编程助手</h3>
+            <button class="close-btn" @click="showChat = false">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/>
+              </svg>
+            </button>
+          </div>
+          <AIChatBox />
+        </div>
+      </div>
+
       <div class="categories-grid">
         <div v-for="(category, key) in categories" 
              :key="key" 
@@ -60,10 +81,12 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { messages } from '../locales'
+import AIChatBox from '../components/AIChatBox.vue'
 
 const router = useRouter()
 const currentLocale = ref('en')
 const showLanguageMenu = ref(false)
+const showChat = ref(false)
 
 // 定义所有类别及其图标
 const categories = {
@@ -423,5 +446,109 @@ const languages = {
 .language-menu button.active {
   color: #4F6EF7;
   background: #f5f7ff;
+}
+
+.ai-assistant-btn {
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #4F6EF7;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.2);
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.ai-assistant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(79, 110, 247, 0.3);
+}
+
+.ai-assistant-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.chat-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.chat-modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 800px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+.chat-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.chat-modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  color: #333;
+  transform: rotate(90deg);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 修改 AIChatBox 容器样式 */
+:deep(.chat-box) {
+  height: calc(80vh - 70px);
+  border-radius: 0 0 16px 16px;
+  box-shadow: none;
 }
 </style>

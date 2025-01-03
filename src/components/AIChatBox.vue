@@ -13,7 +13,7 @@
         type="text" 
         v-model="userInput"
         @keyup.enter="sendMessage"
-        :placeholder="t('chat.inputPlaceholder')"
+        :placeholder="t('ai.placeholder')"
         :disabled="isLoading"
       >
       <button 
@@ -21,7 +21,7 @@
         :disabled="isLoading || !userInput.trim()"
         class="send-btn"
       >
-        <span v-if="!isLoading">{{ t('chat.send') }}</span>
+        <span v-if="!isLoading">{{ t('ai.send') }}</span>
         <span v-else class="loading-spinner"></span>
       </button>
     </div>
@@ -29,8 +29,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+import { messages as i18nMessages } from '../locales'
+
+const props = defineProps({
+  currentLocale: {
+    type: String,
+    required: true
+  }
+})
 
 const API_URL =  'https://api.deepseek.com/v1/chat/completions'
 const API_KEY = 'sk-1bb183d7bd70432e9f0deafbbfe89bb9'
@@ -40,11 +48,13 @@ const isLoading = ref(false)
 const messagesContainer = ref(null)
 
 const t = (key) => {
-  const translations = {
-    'chat.inputPlaceholder': '输入你的编程问题...',
-    'chat.send': '发送'
+  const keys = key.split('.')
+  let result = i18nMessages[props.currentLocale]
+  for (const k of keys) {
+    if (!result) return key
+    result = result[k]
   }
-  return translations[key] || key
+  return result || key
 }
 
 const formatMessage = (content) => {
@@ -78,7 +88,7 @@ const sendMessage = async () => {
       messages: [
         {
           role: 'system',
-          content: '你是一个专业的编程助手，擅长解答各类编程问题。请用简洁专业的方式回答问题。'
+          content: `你是一个专业的编程助手，请用${props.currentLocale === 'zh' ? '中文' : props.currentLocale === 'ja' ? '日语' : '英文'}回答问题。`
         },
         ...messages.value
       ],
@@ -111,10 +121,19 @@ const sendMessage = async () => {
   }
 }
 
+// 监听语言变化
+watch(() => props.currentLocale, (newLocale) => {
+  // 更新系统消息的语言
+  const systemMessage = i18nMessages[newLocale].ai.greeting
+  if (messages.value[0]?.role === 'assistant') {
+    messages.value[0].content = systemMessage
+  }
+})
+
 onMounted(() => {
   messages.value = [{
     role: 'assistant',
-    content: '你好！我是 AI 编程助手，有什么编程问题我可以帮你解答吗？'
+    content: t('ai.greeting')
   }]
 })
 </script>

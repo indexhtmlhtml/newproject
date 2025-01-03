@@ -71,6 +71,13 @@ export const messages = {
       generateSolutions: 'Generate Solutions',
       generatingProblems: 'Generating new problems...',
       generatingSolutions: 'Generating solutions...'
+    },
+    ai: {
+      title: 'AI Assistant',
+      button: 'AI Assistant',
+      placeholder: 'Enter your programming question...',
+      send: 'Send',
+      greeting: 'Hi! I\'m your AI programming assistant. How can I help you?'
     }
   },
   zh: {
@@ -145,6 +152,13 @@ export const messages = {
       generateSolutions: '生成题解',
       generatingProblems: '正在生成新题目...',
       generatingSolutions: '正在生成题解...'
+    },
+    ai: {
+      title: 'AI 编程助手',
+      button: 'AI 助手',
+      placeholder: '输入你的编程问题...',
+      send: '发送',
+      greeting: '你好！我是 AI 编程助手，有什么编程问题我可以帮你解答吗？'
     }
   },
   ja: {
@@ -219,6 +233,13 @@ export const messages = {
       generateSolutions: '解答を生成',
       generatingProblems: '新しい問題を生成中...',
       generatingSolutions: '解答を生成中...'
+    },
+    ai: {
+      title: 'AI アシスタント',
+      button: 'AI アシスタント',
+      placeholder: 'プログラミングの質問を入力してください...',
+      send: '送信',
+      greeting: 'こんにちは！私はAIプログラミングアシスタントです。どのようにお手伝いできますか？'
     }
   }
 }

@@ -46,20 +46,20 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
           <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6s6-2.69 6-6s-2.69-6-6-6zm0 9c-1.66 0-3-1.34-3-3s1.34-3 3-3s3 1.34 3 3s-1.34 3-3 3z"/>
         </svg>
-        <span>AI 助手</span>
+        <span>{{ t('ai.button') }}</span>
       </button>
 
       <div v-if="showChat" class="chat-modal">
         <div class="chat-modal-content">
           <div class="chat-modal-header">
-            <h3>AI 编程助手</h3>
+            <h3>{{ t('ai.title') }}</h3>
             <button class="close-btn" @click="showChat = false">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/>
               </svg>
             </button>
           </div>
-          <AIChatBox />
+          <AIChatBox :currentLocale="currentLocale" />
         </div>
       </div>
 

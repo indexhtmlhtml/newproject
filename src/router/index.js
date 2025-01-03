@@ -28,6 +28,11 @@ const routes = [
     path: '/problems/:category',
     name: 'Problems',
     component: Problems
+  },
+  {
+    path: '/create-paper',
+    name: 'CreatePaper',
+    component: () => import('../views/CreatePaper.vue')
   }
 ]
 

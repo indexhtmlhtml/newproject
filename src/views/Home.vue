@@ -42,6 +42,21 @@
       <h2 class="welcome-text">{{ t('home.welcome') }}</h2>
       <p class="subtitle">{{ t('home.subtitle') }}</p>
 
+      <div class="special-features">
+        <div class="feature-card" @click="router.push('/create-paper')">
+          <div class="feature-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+              <path fill="#4F6EF7" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+              <path fill="#4F6EF7" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
+            </svg>
+          </div>
+          <div class="feature-content">
+            <h3>{{ t('paper.createPaper') }}</h3>
+            <p>{{ t('paper.createPaperDesc') }}</p>
+          </div>
+        </div>
+      </div>
+
       <button class="ai-assistant-btn" @click="showChat = true">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
           <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6s6-2.69 6-6s-2.69-6-6-6zm0 9c-1.66 0-3-1.34-3-3s1.34-3 3-3s3 1.34 3 3s-1.34 3-3 3z"/>
@@ -550,5 +565,44 @@ const languages = {
   height: calc(80vh - 70px);
   border-radius: 0 0 16px 16px;
   box-shadow: none;
+}
+
+.special-features {
+  margin-bottom: 32px;
+}
+
+.feature-card {
+  background: linear-gradient(135deg, #4F6EF7 0%, #3D5CE5 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(79, 110, 247, 0.2);
+}
+
+.feature-icon {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.feature-content h3 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.feature-content p {
+  margin: 0;
+  opacity: 0.8;
 }
 </style>

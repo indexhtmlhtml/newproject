@@ -78,6 +78,30 @@ export const messages = {
       placeholder: 'Enter your programming question...',
       send: 'Send',
       greeting: 'Hi! I\'m your AI programming assistant. How can I help you?'
+    },
+    paper: {
+      createPaper: 'AI Paper Generator',
+      createPaperDesc: 'Generate custom exam papers with AI assistance',
+      title: 'Generate Paper',
+      settings: 'Paper Settings',
+      questionTypes: {
+        title: 'Question Types',
+        choice: 'Multiple Choice',
+        programming: 'Programming',
+        completion: 'Fill in the Blanks'
+      },
+      difficulty: 'Difficulty Level',
+      duration: 'Duration (minutes)',
+      totalScore: 'Total Score',
+      generate: 'Generate Paper',
+      generating: 'Generating...',
+      preview: 'Paper Preview',
+      defaultTitle: '编程能力测试',
+      answer: '参考答案',
+      example: {
+        input: '输入示例',
+        output: '输出示例'
+      }
     }
   },
   zh: {
@@ -159,6 +183,30 @@ export const messages = {
       placeholder: '输入你的编程问题...',
       send: '发送',
       greeting: '你好！我是 AI 编程助手，有什么编程问题我可以帮你解答吗？'
+    },
+    paper: {
+      createPaper: '智能组卷',
+      createPaperDesc: '使用 AI 快速生成自定义试卷',
+      title: '生成试卷',
+      settings: '试卷设置',
+      questionTypes: {
+        title: '题型设置',
+        choice: '选择题',
+        programming: '编程题',
+        completion: '填空题'
+      },
+      difficulty: '难度等级',
+      duration: '考试时长（分钟）',
+      totalScore: '总分',
+      generate: '生成试卷',
+      generating: '正在生成...',
+      preview: '试卷预览',
+      defaultTitle: '编程能力测试',
+      answer: '参考答案',
+      example: {
+        input: '输入示例',
+        output: '输出示例'
+      }
     }
   },
   ja: {
@@ -240,6 +288,30 @@ export const messages = {
       placeholder: 'プログラミングの質問を入力してください...',
       send: '送信',
       greeting: 'こんにちは！私はAIプログラミングアシスタントです。どのようにお手伝いできますか？'
+    },
+    paper: {
+      createPaper: 'AI Paper Generator',
+      createPaperDesc: 'Generate custom exam papers with AI assistance',
+      title: 'Generate Paper',
+      settings: 'Paper Settings',
+      questionTypes: {
+        title: 'Question Types',
+        choice: 'Multiple Choice',
+        programming: 'Programming',
+        completion: 'Fill in the Blanks'
+      },
+      difficulty: 'Difficulty Level',
+      duration: 'Duration (minutes)',
+      totalScore: 'Total Score',
+      generate: 'Generate Paper',
+      generating: 'Generating...',
+      preview: 'Paper Preview',
+      defaultTitle: '编程能力测试',
+      answer: '参考答案',
+      example: {
+        input: '输入示例',
+        output: '输出示例'
+      }
     }
   }
 }

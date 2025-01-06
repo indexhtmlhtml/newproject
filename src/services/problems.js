@@ -34,6 +34,13 @@ export const submitSolution = async (params) => {
 }
 
 export const generateProblems = async (params) => {
+  // 如果没有指定难度或选择了随机，则随机选择难度
+  const difficulties = ['easy', 'medium', 'hard']
+  const getRandomDifficulty = () => {
+    const index = Math.floor(Math.random() * difficulties.length)
+    return difficulties[index]
+  }
+
   try {
     const response = await axios.post(`${API_URL}/v1/chat/completions`, {
       model: "deepseek-chat",
@@ -41,9 +48,12 @@ export const generateProblems = async (params) => {
         {
           role: "system",
           content: `你是一个专业的编程题目生成专家。请生成 ${params.count} 道${
-            params.difficulty === 'easy' ? '简单' : 
+            !params.difficulty || params.difficulty === 'random' ? '随机' :
+            params.difficulty === 'easy' ? '简单' :
             params.difficulty === 'medium' ? '中等' : '困难'
           }难度的${params.category}编程题目。
+          ${!params.difficulty || params.difficulty === 'random' ? 
+            '请确保生成的题目难度分布均匀，包含简单、中等和困难题目。' : ''}
 
           每道题目必须包含：
           1. 标题
@@ -58,7 +68,8 @@ export const generateProblems = async (params) => {
               {
                 "title": "题目标题",
                 "description": "题目描述",
-                "difficulty": "${params.difficulty}",
+                "difficulty": "${!params.difficulty || params.difficulty === 'random' ? 
+                  getRandomDifficulty() : params.difficulty}",
                 "category": "${params.category}",
                 "examples": [
                   {

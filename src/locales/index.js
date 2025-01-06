@@ -65,12 +65,16 @@ export const messages = {
       easy: 'Easy',
       medium: 'Medium',
       hard: 'Hard',
+      random: 'Random',
       solve: 'Solve',
       successRate: 'Success Rate: {rate}',
       generateProblems: 'Generate Problems',
       generateSolutions: 'Generate Solutions',
       generatingProblems: 'Generating new problems...',
-      generatingSolutions: 'Generating solutions...'
+      generatingSolutions: 'Generating solutions...',
+      confirmDelete: 'Are you sure you want to delete this problem?',
+      confirmDelete: '确定要删除这道题目吗？',
+      confirmDelete: 'この問題を削除してもよろしいですか？'
     },
     ai: {
       title: 'AI Assistant',
@@ -167,16 +171,54 @@ export const messages = {
     problems: {
       back: '返回',
       searchPlaceholder: '搜索题目...',
-      allDifficulties: '所有难度',
+      allDifficulties: '全部难度',
       easy: '简单',
       medium: '中等',
       hard: '困难',
+      random: '随机',
       solve: '开始解题',
       successRate: '通过率：{rate}',
       generateProblems: '生成题目',
       generateSolutions: '生成题解',
       generatingProblems: '正在生成新题目...',
-      generatingSolutions: '正在生成题解...'
+      generatingSolutions: '正在生成题解...',
+      batchGenerate: "批量生成",
+      count: "生成数量",
+      generateSuccess: "题目生成成功！",
+      difficulty: "难度",
+      confirm: "确认",
+      cancel: "取消",
+      generating: "正在生成...",
+      generateError: "生成失败",
+      categories: {
+        algorithms: {
+          title: "算法",
+          desc: "数据结构、排序、搜索等基础算法"
+        },
+        database: {
+          title: "数据库",
+          desc: "SQL查询和数据库设计"
+        },
+        network: {
+          title: "网络",
+          desc: "TCP/IP、协议和网络架构"
+        },
+        os: {
+          title: "操作系统",
+          desc: "进程管理、内存分配和文件系统"
+        },
+        frontend: {
+          title: "前端开发",
+          desc: "HTML、CSS、JavaScript和现代框架"
+        },
+        backend: {
+          title: "后端开发",
+          desc: "服务器架构、API和微服务"
+        }
+      },
+      confirmDelete: '确定要删除这道题目吗？',
+      confirmDelete: '确定要删除这道题目吗？',
+      confirmDelete: 'この問題を削除してもよろしいですか？'
     },
     ai: {
       title: 'AI 编程助手',
@@ -209,6 +251,11 @@ export const messages = {
         output: '输出示例'
       },
       download: '下载试卷'
+    },
+    common: {
+      confirm: "确认",
+      cancel: "取消",
+      back: "返回"
     }
   },
   ja: {
@@ -277,12 +324,14 @@ export const messages = {
       easy: '易しい',
       medium: '普通',
       hard: '難しい',
+      random: 'ランダム',
       solve: '解く',
       successRate: '成功率：{rate}',
       generateProblems: '問題を生成',
       generateSolutions: '解答を生成',
       generatingProblems: '新しい問題を生成中...',
-      generatingSolutions: '解答を生成中...'
+      generatingSolutions: '解答を生成中...',
+      confirmDelete: 'この問題を削除してもよろしいですか？'
     },
     ai: {
       title: 'AI アシスタント',

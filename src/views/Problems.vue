@@ -9,33 +9,38 @@
             </svg>
             {{ t('problems.back') }}
           </button>
-          <h1 class="page-title">{{ t(`home.categories.${category}.title`) }}</h1>
+          <div class="category-info">
+            <h1 class="category-title">{{ t(`home.categories.${category}.title`) }}</h1>
+            <p class="category-desc">{{ t(`home.categories.${category}.desc`) }}</p>
+          </div>
         </div>
-        
-        <div class="filters">
+
+        <div class="right-section">
           <div class="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
             <input 
               type="text" 
               v-model="searchQuery" 
               :placeholder="t('problems.searchPlaceholder')"
             >
           </div>
-          
-          <select v-model="difficulty" class="difficulty-filter">
+
+          <select v-model="difficulty" class="difficulty-select">
             <option value="">{{ t('problems.allDifficulties') }}</option>
             <option value="easy">{{ t('problems.easy') }}</option>
             <option value="medium">{{ t('problems.medium') }}</option>
             <option value="hard">{{ t('problems.hard') }}</option>
           </select>
+
+          <button class="generate-btn" @click="showGenerateModal = true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+            {{ t('problems.batchGenerate') }}
+          </button>
         </div>
-      </div>
-      <div class="header-actions">
-        <button class="generate-btn" @click="showGenerateModal = true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-          </svg>
-          {{ t('problems.batchGenerate') }}
-        </button>
       </div>
     </header>
 
@@ -75,21 +80,44 @@
     <!-- 批量生成模态框 -->
     <div v-if="showGenerateModal" class="modal-overlay" @click="showGenerateModal = false">
       <div class="modal-content" @click.stop>
-        <h2>{{ t('problems.batchGenerate') }}</h2>
-        <div class="form-group">
-          <label>{{ t('problems.count') }}</label>
-          <input type="number" v-model="generateConfig.count" min="1" max="10">
+        <div class="modal-header">
+          <h2>{{ t('problems.batchGenerate') }}</h2>
+          <button class="close-btn" @click="showGenerateModal = false">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41z"/>
+            </svg>
+          </button>
         </div>
+
         <div class="form-group">
-          <label>{{ t('problems.difficulty') }}</label>
-          <select v-model="generateConfig.difficulty">
+          <label class="form-label">{{ t('problems.count') }}</label>
+          <input 
+            type="number" 
+            v-model="generateConfig.count" 
+            min="1" 
+            max="10"
+            class="form-input"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ t('problems.difficulty') }}</label>
+          <select 
+            v-model="generateConfig.difficulty"
+            class="form-select"
+          >
+            <option value="random">{{ t('problems.random') }}</option>
             <option value="easy">{{ t('problems.easy') }}</option>
             <option value="medium">{{ t('problems.medium') }}</option>
             <option value="hard">{{ t('problems.hard') }}</option>
           </select>
         </div>
+
         <div class="modal-actions">
-          <button class="cancel-btn" @click="showGenerateModal = false">
+          <button 
+            class="cancel-btn" 
+            @click="showGenerateModal = false"
+          >
             {{ t('common.cancel') }}
           </button>
           <button 
@@ -97,7 +125,7 @@
             @click="handleGenerateProblems"
             :disabled="isGenerating"
           >
-            <span v-if="!isGenerating">{{ t('common.confirm') }}</span>
+            <span v-if="!isGenerating">{{ t('problems.batchGenerate') }}</span>
             <span v-else class="loading-spinner"></span>
           </button>
         </div>
@@ -107,45 +135,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { messages } from '../locales'
+import { useI18n } from 'vue-i18n'
+import { useProblemsStore } from '../stores/problems'
 import { generateProblems } from '../services/problems'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
+const problemsStore = useProblemsStore()
+
 const category = route.params.category
-const currentLocale = ref('zh')
+const problems = ref(problemsStore.getProblemsByCategory(category))
 const searchQuery = ref('')
 const difficulty = ref('')
-
-// 模拟题目数据
-const problems = ref([
-  {
-    id: 1,
-    title: '两数之和',
-    description: '给定一个整数数组 nums 和一个目标值 target，请你在该数组中找出和为目标值的那两个整数。',
-    difficulty: 'easy',
-    successRate: '44.5%',
-    status: 'solved'
-  },
-  {
-    id: 2,
-    title: '最长回文子串',
-    description: '给定一个字符串 s，找到 s 中最长的回文子串。',
-    difficulty: 'medium',
-    successRate: '32.1%',
-    status: 'attempted'
-  },
-  {
-    id: 3,
-    title: '正则表达式匹配',
-    description: '给你一个字符串 s 和一个字符规律 p，请你来实现一个支持 "." 和 "*" 的正则表达式匹配。',
-    difficulty: 'hard',
-    successRate: '28.4%',
-    status: 'unsolved'
-  }
-])
 
 const filteredProblems = computed(() => {
   return problems.value.filter(problem => {
@@ -164,47 +168,37 @@ const solveProblem = (id) => {
   router.push(`/problems/${route.params.category}/${id}/solve`)
 }
 
-const t = (key, params = {}) => {
-  const keys = key.split('.')
-  let result = messages[currentLocale.value]
-  for (const k of keys) {
-    if (!result) return key
-    result = result[k]
-  }
-  if (typeof result === 'string') {
-    return result.replace(/\{(\w+)\}/g, (_, key) => params[key] || '')
-  }
-  return key
-}
-
 const showGenerateModal = ref(false)
-const isGenerating = ref(false)
 const generateConfig = ref({
   count: 5,
-  difficulty: 'medium'
+  difficulty: 'random'
 })
+const isGenerating = ref(false)
 
 const handleGenerateProblems = async () => {
-  if (isGenerating.value) return
-  
   try {
     isGenerating.value = true
     const result = await generateProblems({
-      ...generateConfig.value,
-      category: route.params.category
+      category,
+      count: generateConfig.value.count,
+      difficulty: generateConfig.value.difficulty
     })
     
-    // 添加生成的题目到列表
-    problems.value.push(...result.problems)
-    showGenerateModal.value = false
+    problemsStore.addProblems(category, result.problems)
+    problems.value = problemsStore.getProblemsByCategory(category)
     
-    // 显示成功提示
-    alert(t('problems.generateSuccess'))
+    showGenerateModal.value = false
   } catch (error) {
-    console.error('Generate problems error:', error)
-    alert(error.message)
+    console.error('Generate problems failed:', error)
   } finally {
     isGenerating.value = false
+  }
+}
+
+const deleteProblem = (problemId) => {
+  if (confirm(t('problems.confirmDelete'))) {
+    problemsStore.deleteProblem(category, problemId)
+    problems.value = problemsStore.getProblemsByCategory(category)
   }
 }
 </script>
@@ -217,26 +211,28 @@ const handleGenerateProblems = async () => {
 
 .header {
   background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 16px 0;
+  border-bottom: 1px solid #eee;
   position: sticky;
   top: 0;
   z-index: 100;
+  padding: 16px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .header-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 24px;
 }
 
 .left-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .back-btn {
@@ -250,6 +246,7 @@ const handleGenerateProblems = async () => {
   color: #4F6EF7;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .back-btn:hover {
@@ -257,31 +254,144 @@ const handleGenerateProblems = async () => {
   transform: translateX(-4px);
 }
 
-.page-title {
+.category-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.category-title {
   font-size: 24px;
+  font-weight: 600;
   color: #333;
   margin: 0;
 }
 
-.filters {
+.category-desc {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.right-section {
   display: flex;
+  align-items: center;
   gap: 16px;
 }
 
-.search-box input {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f5f5;
   border-radius: 8px;
-  width: 240px;
-  font-size: 14px;
+  padding: 8px 16px;
+  width: 300px;
+  transition: all 0.3s ease;
 }
 
-.difficulty-filter {
+.search-box:focus-within {
+  background: white;
+  box-shadow: 0 0 0 2px #4F6EF7;
+}
+
+.search-box svg {
+  color: #666;
+}
+
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  width: 100%;
+}
+
+.difficulty-select {
   padding: 8px 16px;
   border: 1px solid #ddd;
   border-radius: 8px;
   background: white;
   cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+.difficulty-select:hover {
+  border-color: #4F6EF7;
+}
+
+.difficulty-select:focus {
+  border-color: #4F6EF7;
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.2);
+  outline: none;
+}
+
+.generate-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #4F6EF7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.generate-btn:hover {
+  background: #3D5CE5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.2);
+}
+
+@media (max-width: 1024px) {
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .right-section {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .search-box {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: 12px 0;
+  }
+  
+  .header-content {
+    padding: 0 16px;
+  }
+  
+  .left-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .right-section {
+    gap: 12px;
+  }
+  
+  .difficulty-select,
+  .generate-btn {
+    width: 100%;
+  }
+  
+  .generate-btn {
+    justify-content: center;
+  }
 }
 
 .main-content {
@@ -392,53 +502,6 @@ const handleGenerateProblems = async () => {
   background: #3D5CE5;
 }
 
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .filters {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .search-box input {
-    width: 100%;
-  }
-
-  .problem-card {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .problem-meta {
-    justify-content: center;
-  }
-}
-
-.header-actions {
-  display: flex;
-  gap: 16px;
-}
-
-.generate-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #4F6EF7;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.generate-btn:hover {
-  background: #3D5CE5;
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -458,23 +521,62 @@ const handleGenerateProblems = async () => {
   border-radius: 12px;
   width: 100%;
   max-width: 400px;
+  animation: slideUp 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  color: #333;
+  transform: rotate(90deg);
 }
 
 .form-group {
   margin: 16px 0;
 }
 
-.form-group label {
+.form-label {
   display: block;
   margin-bottom: 8px;
+  font-size: 14px;
+  color: #666;
 }
 
-.form-group input,
-.form-group select {
+.form-input,
+.form-select {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: #4F6EF7;
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.2);
+  outline: none;
 }
 
 .modal-actions {
@@ -505,5 +607,31 @@ const handleGenerateProblems = async () => {
 .confirm-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.delete-btn {
+  padding: 4px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  color: #dc3545;
 }
 </style> 

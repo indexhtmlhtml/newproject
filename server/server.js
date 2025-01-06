@@ -1,7 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import WebSocket from 'ws'
-import crypto from 'crypto'
+import axios from 'axios'
 
 const app = express()
 
@@ -332,6 +331,105 @@ app.post('/api/generate-paper', async (req, res) => {
     res.status(500).json({
       error: 'Paper generation failed',
       message: error.message
+    })
+  }
+})
+
+// 批量生成题目
+app.post('/api/generate-problems', async (req, res) => {
+  const { count, difficulty, category } = req.body
+
+  try {
+    const response = await axios.post('https://api.deepseek.com/v3/chat/completions', {
+      model: "deepseek-coder",
+      messages: [
+        {
+          role: "system",
+          content: `你是一个专业的编程题目生成专家。请生成 ${count} 道${
+            difficulty === 'easy' ? '简单' : 
+            difficulty === 'medium' ? '中等' : '困难'
+          }难度的${category}编程题目。
+
+          每道题目必须包含：
+          1. 标题
+          2. 详细描述
+          3. 输入输出格式说明
+          4. 示例输入输出
+          5. 参考答案代码
+          
+          请以JSON格式返回，格式如下：
+          {
+            "problems": [
+              {
+                "title": "题目标题",
+                "description": "题目描述",
+                "difficulty": "${difficulty}",
+                "category": "${category}",
+                "examples": [
+                  {
+                    "input": "示例输入",
+                    "output": "示例输出"
+                  }
+                ],
+                "solution": "参考答案代码"
+              }
+            ]
+          }`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 4096
+    }, {
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY || 'sk-1bb183d7bd70432e9f0deafbbfe89bb9'}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    console.log('API Response:', response.data)
+
+    try {
+      const result = response.data.choices[0].message.content
+      console.log('Raw result:', result)
+      
+      // 从响应中提取并解析 JSON
+      const jsonStr = result.match(/```json\s*([\s\S]*?)\s*```/) || 
+                     result.match(/{[\s\S]*}/)
+      
+      if (!jsonStr) {
+        throw new Error('No JSON found in response')
+      }
+      
+      const jsonData = JSON.parse(jsonStr[1] || jsonStr[0])
+      console.log('Parsed data:', jsonData)
+      
+      if (!jsonData.problems || !Array.isArray(jsonData.problems)) {
+        throw new Error('Invalid problems format')
+      }
+      
+      res.json({ problems: jsonData.problems })
+    } catch (error) {
+      console.error('Failed to parse problems:', error)
+      res.status(500).json({
+        error: 'Failed to parse generated problems',
+        message: error.message
+      })
+    }
+  } catch (error) {
+    console.error('Problem generation error:', error)
+    console.error('Error details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      }
+    })
+    res.status(500).json({
+      error: 'Generation failed',
+      message: error.response?.data?.error?.message || error.message
     })
   }
 })

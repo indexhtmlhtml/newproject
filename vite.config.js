@@ -15,7 +15,7 @@ export default defineConfig({
       strict: false
     },
     proxy: {
-      '/api': {
+      '^/api(?!/generate-problems)': {
         target: 'http://localhost:3005',
         changeOrigin: true,
         secure: false

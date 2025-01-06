@@ -29,6 +29,14 @@
           </select>
         </div>
       </div>
+      <div class="header-actions">
+        <button class="generate-btn" @click="showGenerateModal = true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+          {{ t('problems.batchGenerate') }}
+        </button>
+      </div>
     </header>
 
     <main class="main-content">
@@ -63,6 +71,38 @@
         </div>
       </div>
     </main>
+
+    <!-- 批量生成模态框 -->
+    <div v-if="showGenerateModal" class="modal-overlay" @click="showGenerateModal = false">
+      <div class="modal-content" @click.stop>
+        <h2>{{ t('problems.batchGenerate') }}</h2>
+        <div class="form-group">
+          <label>{{ t('problems.count') }}</label>
+          <input type="number" v-model="generateConfig.count" min="1" max="10">
+        </div>
+        <div class="form-group">
+          <label>{{ t('problems.difficulty') }}</label>
+          <select v-model="generateConfig.difficulty">
+            <option value="easy">{{ t('problems.easy') }}</option>
+            <option value="medium">{{ t('problems.medium') }}</option>
+            <option value="hard">{{ t('problems.hard') }}</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="cancel-btn" @click="showGenerateModal = false">
+            {{ t('common.cancel') }}
+          </button>
+          <button 
+            class="confirm-btn" 
+            @click="handleGenerateProblems"
+            :disabled="isGenerating"
+          >
+            <span v-if="!isGenerating">{{ t('common.confirm') }}</span>
+            <span v-else class="loading-spinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -70,6 +110,7 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { messages } from '../locales'
+import { generateProblems } from '../services/problems'
 
 const router = useRouter()
 const route = useRoute()
@@ -134,6 +175,37 @@ const t = (key, params = {}) => {
     return result.replace(/\{(\w+)\}/g, (_, key) => params[key] || '')
   }
   return key
+}
+
+const showGenerateModal = ref(false)
+const isGenerating = ref(false)
+const generateConfig = ref({
+  count: 5,
+  difficulty: 'medium'
+})
+
+const handleGenerateProblems = async () => {
+  if (isGenerating.value) return
+  
+  try {
+    isGenerating.value = true
+    const result = await generateProblems({
+      ...generateConfig.value,
+      category: route.params.category
+    })
+    
+    // 添加生成的题目到列表
+    problems.value.push(...result.problems)
+    showGenerateModal.value = false
+    
+    // 显示成功提示
+    alert(t('problems.generateSuccess'))
+  } catch (error) {
+    console.error('Generate problems error:', error)
+    alert(error.message)
+  } finally {
+    isGenerating.value = false
+  }
 }
 </script>
 
@@ -343,5 +415,95 @@ const t = (key, params = {}) => {
   .problem-meta {
     justify-content: center;
   }
+}
+
+.header-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.generate-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #4F6EF7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.generate-btn:hover {
+  background: #3D5CE5;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.form-group {
+  margin: 16px 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.cancel-btn,
+.confirm-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: white;
+  border: 1px solid #ddd;
+}
+
+.confirm-btn {
+  background: #4F6EF7;
+  color: white;
+  border: none;
+}
+
+.confirm-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 </style> 

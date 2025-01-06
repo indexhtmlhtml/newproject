@@ -1,0 +1,10 @@
+{
+  "problems": {
+    "batchGenerate": "批量生成",
+    "count": "生成数量",
+    "generateSuccess": "题目生成成功！",
+    "easy": "简单",
+    "medium": "中等",
+    "hard": "困难"
+  }
+} 

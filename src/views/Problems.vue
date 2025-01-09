@@ -97,6 +97,7 @@
             min="1" 
             max="10"
             class="form-input"
+            :disabled="isGenerating"
           >
         </div>
 
@@ -105,6 +106,7 @@
           <select 
             v-model="generateConfig.difficulty"
             class="form-select"
+            :disabled="isGenerating"
           >
             <option value="random">{{ t('problems.random') }}</option>
             <option value="easy">{{ t('problems.easy') }}</option>
@@ -117,6 +119,7 @@
           <button 
             class="cancel-btn" 
             @click="showGenerateModal = false"
+            :disabled="isGenerating"
           >
             {{ t('common.cancel') }}
           </button>
@@ -126,16 +129,53 @@
             :disabled="isGenerating"
           >
             <span v-if="!isGenerating">{{ t('problems.batchGenerate') }}</span>
-            <span v-else class="loading-spinner"></span>
+            <span v-else class="generating-text">
+              {{ t('problems.generating') }}
+              <span class="dots">...</span>
+            </span>
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- 生成中的遮罩层 -->
+    <div v-if="isGenerating" class="generating-overlay">
+      <div class="generating-content">
+        <div class="generating-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+            <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
+          </svg>
+        </div>
+        <div class="generating-status">
+          <h3>{{ t('problems.generating') }}</h3>
+          <div class="progress-bar">
+            <div class="progress-indicator"></div>
+          </div>
+          <p class="status-text">{{ generatingStatus }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div v-if="notification.show" 
+         :class="['notification', notification.type]"
+         @click="notification.show = false">
+      <div class="notification-icon">
+        <svg v-if="notification.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+        </svg>
+      </div>
+      <span class="notification-text">{{ notification.message }}</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useProblemsStore } from '../stores/problems'
@@ -174,10 +214,33 @@ const generateConfig = ref({
   difficulty: 'random'
 })
 const isGenerating = ref(false)
+const notification = ref({
+  show: false,
+  type: 'success',
+  message: ''
+})
+
+const generatingStatus = ref('')
+const generatingSteps = [
+  'problems.generatingStep1',
+  'problems.generatingStep2',
+  'problems.generatingStep3'
+]
+
+let statusInterval
 
 const handleGenerateProblems = async () => {
   try {
     isGenerating.value = true
+    showGenerateModal.value = false
+    
+    // 开始状态更新
+    let stepIndex = 0
+    statusInterval = setInterval(() => {
+      generatingStatus.value = t(generatingSteps[stepIndex])
+      stepIndex = (stepIndex + 1) % generatingSteps.length
+    }, 2000)
+    
     const result = await generateProblems({
       category,
       count: generateConfig.value.count,
@@ -187,11 +250,22 @@ const handleGenerateProblems = async () => {
     problemsStore.addProblems(category, result.problems)
     problems.value = problemsStore.getProblemsByCategory(category)
     
-    showGenerateModal.value = false
+    // 显示成功通知
+    notification.value = {
+      show: true,
+      type: 'success',
+      message: t('problems.generateSuccess')
+    }
   } catch (error) {
     console.error('Generate problems failed:', error)
+    notification.value = {
+      show: true,
+      type: 'error',
+      message: error.message
+    }
   } finally {
     isGenerating.value = false
+    clearInterval(statusInterval)
   }
 }
 
@@ -201,6 +275,11 @@ const deleteProblem = (problemId) => {
     problems.value = problemsStore.getProblemsByCategory(category)
   }
 }
+
+// 在组件卸载时清理定时器
+onUnmounted(() => {
+  clearInterval(statusInterval)
+})
 </script>
 
 <style scoped>
@@ -633,5 +712,126 @@ const deleteProblem = (problemId) => {
 .delete-btn:hover {
   opacity: 1;
   color: #dc3545;
+}
+
+.generating-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dots {
+  animation: dots 1.4s infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40%, 60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+
+.generating-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.generating-content {
+  text-align: center;
+  padding: 32px;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+.generating-icon {
+  color: #4F6EF7;
+  margin-bottom: 24px;
+  animation: bounce 2s infinite;
+}
+
+.generating-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.progress-bar {
+  width: 200px;
+  height: 4px;
+  background: rgba(79, 110, 247, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-indicator {
+  height: 100%;
+  background: #4F6EF7;
+  width: 30%;
+  border-radius: 2px;
+  animation: progress 2s infinite;
+}
+
+.status-text {
+  color: #666;
+  font-size: 14px;
+}
+
+.notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+}
+
+.notification.success {
+  background: #28a745;
+}
+
+.notification.error {
+  background: #dc3545;
+}
+
+.notification-icon {
+  display: flex;
+  align-items: center;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 </style> 

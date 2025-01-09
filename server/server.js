@@ -1,8 +1,10 @@
 import express from 'express'
 import cors from 'cors'
 import axios from 'axios'
+import crypto from 'crypto'
 
 const app = express()
+const PORT = 3006
 
 app.use(cors({
   origin: ['http://localhost:3003', 'http://localhost:3000'],
@@ -15,7 +17,9 @@ app.use(express.json())
 
 // 添加请求日志中间件
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`)
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`)
+  console.log('Request body:', req.body)
+  console.log('Request headers:', req.headers)
   next()
 })
 
@@ -25,6 +29,18 @@ const SPARK_CONFIG = {
   API_SECRET: 'ZGUwZWM5NDNmOTdkMGIzYjFiMDQ5NjAw',
   API_KEY: 'c844821bb151c360b96840040731ca26',
   WS_URL: 'wss://spark-api.xf-yun.com/v2.1/chat'
+}
+
+// Coze API 配置
+const COZE_CONFIG = {
+  API_URL: 'https://www.coze.cn/api/bot/7456723652143398963/chat/completions',
+  TOKEN: 'pat_DAFNcM7kUKLI7I3JbbYFALleLJcik6CksPhgme4KOHx7QLjkx2u6OXYf4FyMzp28',
+  HEADERS: {
+    'Authorization': 'Bearer pat_DAFNcM7kUKLI7I3JbbYFALleLJcik6CksPhgme4KOHx7QLjkx2u6OXYf4FyMzp28',
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+  }
 }
 
 // 生成鉴权URL
@@ -434,6 +450,143 @@ app.post('/api/generate-problems', async (req, res) => {
   }
 })
 
+// 添加面试相关路由
+app.post('/api/interview/start', async (req, res) => {
+  try {
+    const { interviewerId } = req.body
+    console.log('[Interview Start] Interviewer ID:', interviewerId)
+    console.log('[Interview Start] Prompt:', getInterviewerPrompt(interviewerId))
+
+    const requestData = {
+      messages: [
+        {
+          role: 'system',
+          content: `你现在是一位${getInterviewerPrompt(interviewerId)}。请以专业、友好的方式开始面试。`
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 1000
+    }
+
+    console.log('[Interview Start] Request URL:', COZE_CONFIG.API_URL)
+    console.log('[Interview Start] Request Headers:', COZE_CONFIG.HEADERS)
+    console.log('[Interview Start] Request Data:', requestData)
+
+    const response = await axios.post(COZE_CONFIG.API_URL, requestData, {
+      headers: COZE_CONFIG.HEADERS,
+      validateStatus: function (status) {
+        return status < 500
+      }
+    })
+    
+    console.log('[Interview Start] Response Status:', response.status)
+    console.log('[Interview Start] Response Headers:', response.headers)
+    console.log('[Interview Start] Response Data:', response.data)
+    
+    if (!response.data || !response.data.choices || !response.data.choices[0]) {
+      throw new Error('Invalid response from Coze API')
+    }
+
+    res.json({
+      message: response.data.choices[0].message.content
+    })
+  } catch (error) {
+    console.error('[Interview Start] Error:', error.message)
+    if (error.response) {
+      console.error('[Interview Start] Response Error:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers
+      })
+    } else if (error.request) {
+      console.error('[Interview Start] Request Error:', error.request)
+    } else {
+      console.error('[Interview Start] Error:', error.message)
+    }
+    console.error('[Interview Start] Error Config:', error.config)
+
+    res.status(500).json({ 
+      error: 'Failed to start interview',
+      details: error.message,
+      cozeError: error.response?.data?.error
+    })
+  }
+})
+
+app.post('/api/interview/message', async (req, res) => {
+  try {
+    const { interviewerId, message } = req.body
+    console.log('Sending message:', { interviewerId, message })
+
+    const requestData = {
+      messages: [
+        {
+          role: 'system',
+          content: `你现在是一位${getInterviewerPrompt(interviewerId)}。请根据候选人的回答继续面试。`
+        },
+        {
+          role: 'user',
+          content: message
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 1000
+    }
+
+    const response = await axios.post(COZE_CONFIG.API_URL, requestData, {
+      headers: COZE_CONFIG.HEADERS
+    })
+    
+    if (!response.data || !response.data.choices || !response.data.choices[0]) {
+      throw new Error('Invalid response from Coze API')
+    }
+
+    res.json({
+      message: response.data.choices[0].message.content
+    })
+  } catch (error) {
+    console.error('Interview message error:', error)
+    console.error('Error details:', {
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers
+    })
+    res.status(500).json({ 
+      error: 'Failed to send message',
+      details: error.message,
+      cozeError: error.response?.data?.error
+    })
+  }
+})
+
+// 面试官提示词函数
+function getInterviewerPrompt(interviewerId) {
+  const prompts = {
+    frontend: `前端技术专家，专注于现代前端开发技术栈。你需要考察候选人的：
+      1. JavaScript、HTML、CSS 基础知识
+      2. Vue、React 等现代框架的使用经验
+      3. 前端工程化和性能优化能力
+      4. 技术选型和架构设计思维`,
+    backend: `后端架构师，专注于分布式系统和微服务架构。你需要考察候选人的：
+      1. 计算机基础知识（数据结构、算法、网络等）
+      2. 分布式系统设计能力
+      3. 数据库设计和优化能力
+      4. 系统架构和性能调优经验`,
+    fullstack: `全栈工程师，同时具备前后端开发经验。你需要考察候选人的：
+      1. 前后端技术栈掌握程度
+      2. 系统设计和架构能力
+      3. DevOps 和部署经验
+      4. 项目管理和团队协作能力`,
+    ai: `AI研究员，专注于机器学习和深度学习。你需要考察候选人的：
+      1. 数学和统计学基础
+      2. 机器学习算法原理
+      3. 深度学习框架使用经验
+      4. AI模型训练和优化能力`
+  }
+  return prompts[interviewerId] || prompts.frontend
+}
+
 // 添加错误处理中间件
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err)
@@ -559,11 +712,55 @@ app.post('/api/submit-solution', (req, res) => {
   })
 })
 
-const PORT = 3005
-app.listen(PORT, '0.0.0.0', () => {
+// 添加测试路由
+app.post('/api/test-coze', async (req, res) => {
+  try {
+    const response = await axios.post(COZE_CONFIG.API_URL, {
+      messages: [
+        {
+          role: 'user',
+          content: '你好，请做个自我介绍'
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 1000
+    }, {
+      headers: COZE_CONFIG.HEADERS
+    })
+    
+    res.json(response.data)
+  } catch (error) {
+    console.error('Test Coze API error:', error)
+    res.status(500).json({
+      error: 'Test failed',
+      details: error.message,
+      response: error.response?.data
+    })
+  }
+})
+
+// 启动服务器
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running at http://localhost:${PORT}`)
+})
+
+// 错误处理
+server.on('error', (error) => {
+  console.error('Server error:', error)
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`)
+  }
 })
 
 process.on('unhandledRejection', (error) => {
   console.error('Unhandled Promise Rejection:', error)
+})
+
+// 优雅关闭
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Closing server...')
+  server.close(() => {
+    console.log('Server closed')
+    process.exit(0)
+  })
 }) 

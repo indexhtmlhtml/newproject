@@ -74,39 +74,20 @@ export const messages = {
       generatingSolutions: 'Generating solutions...',
       confirmDelete: 'Are you sure you want to delete this problem?',
       confirmDelete: '确定要删除这道题目吗？',
-      confirmDelete: 'この問題を削除してもよろしいですか？'
+      confirmDelete: 'この問題を削除してもよろしいですか？',
+      generating: 'Generating Problems...',
+      generatingStep1: 'Analyzing requirements...',
+      generatingStep2: 'Creating problem scenarios...',
+      generatingStep3: 'Finalizing solutions...',
     },
-    ai: {
-      title: 'AI Assistant',
-      button: 'AI Assistant',
-      placeholder: 'Enter your programming question...',
-      send: 'Send',
-      greeting: 'Hi! I\'m your AI programming assistant. How can I help you?'
-    },
-    paper: {
-      createPaper: 'AI Paper Generator',
-      createPaperDesc: 'Generate custom exam papers with AI assistance',
-      title: 'Generate Paper',
-      settings: 'Paper Settings',
-      questionTypes: {
-        title: 'Question Types',
-        choice: 'Multiple Choice',
-        programming: 'Programming',
-        completion: 'Fill in the Blanks'
-      },
-      difficulty: 'Difficulty Level',
-      duration: 'Duration (minutes)',
-      totalScore: 'Total Score',
-      generate: 'Generate Paper',
-      generating: 'Generating...',
-      preview: 'Paper Preview',
-      defaultTitle: '编程能力测试',
-      answer: '参考答案',
-      example: {
-        input: '输入示例',
-        output: '输出示例'
-      },
-      download: '下载试卷'
+    interview: {
+      title: 'AI Interview',
+      selectInterviewer: 'Select an Interviewer',
+      description: 'Practice technical interviews with AI-powered interviewers specialized in different fields',
+      inputPlaceholder: 'Type your answer...',
+      end: 'End Interview',
+      confirmEnd: 'Are you sure you want to end this interview?',
+      error: 'Failed to get response. Please try again.'
     }
   },
   zh: {
@@ -218,7 +199,11 @@ export const messages = {
       },
       confirmDelete: '确定要删除这道题目吗？',
       confirmDelete: '确定要删除这道题目吗？',
-      confirmDelete: 'この問題を削除してもよろしいですか？'
+      confirmDelete: 'この問題を削除してもよろしいですか？',
+      generating: '正在生成题目...',
+      generatingStep1: '正在分析需求...',
+      generatingStep2: '正在创建题目场景...',
+      generatingStep3: '正在完善解答...',
     },
     ai: {
       title: 'AI 编程助手',
@@ -256,6 +241,15 @@ export const messages = {
       confirm: "确认",
       cancel: "取消",
       back: "返回"
+    },
+    interview: {
+      title: 'AI 模拟面试',
+      selectInterviewer: '选择面试官',
+      description: '与 AI 驱动的专业面试官进行不同领域的技术面试实践',
+      inputPlaceholder: '输入你的回答...',
+      end: '结束面试',
+      confirmEnd: '确定要结束本次面试吗？',
+      error: '获取响应失败，请重试。'
     }
   },
   ja: {
@@ -331,7 +325,11 @@ export const messages = {
       generateSolutions: '解答を生成',
       generatingProblems: '新しい問題を生成中...',
       generatingSolutions: '解答を生成中...',
-      confirmDelete: 'この問題を削除してもよろしいですか？'
+      confirmDelete: 'この問題を削除してもよろしいですか？',
+      generating: '問題を生成中...',
+      generatingStep1: '要件を分析中...',
+      generatingStep2: '問題シナリオを作成中...',
+      generatingStep3: '解答を完成中...',
     },
     ai: {
       title: 'AI アシスタント',
@@ -364,6 +362,15 @@ export const messages = {
         output: '输出示例'
       },
       download: '下载试卷'
+    },
+    interview: {
+      title: 'AI 模擬面接',
+      selectInterviewer: '面接官を選択',
+      description: 'AI駆動の専門面接官と様々な分野の技術面接を練習',
+      inputPlaceholder: '回答を入力...',
+      end: '面接を終了',
+      confirmEnd: 'この面接を終了してもよろしいですか？',
+      error: '応答の取得に失敗しました。もう一度お試しください。'
     }
   }
 }

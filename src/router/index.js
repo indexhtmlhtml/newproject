@@ -4,6 +4,7 @@ import Register from '../views/Register.vue'
 import Home from '../views/Home.vue'
 import Problems from '../views/Problems.vue'
 import SolveProblem from '../views/SolveProblem.vue'
+import Interview from '../views/Interview.vue'
 
 const routes = [
   {
@@ -39,6 +40,11 @@ const routes = [
     path: '/create-paper',
     name: 'CreatePaper',
     component: () => import('../views/CreatePaper.vue')
+  },
+  {
+    path: '/interview',
+    name: 'Interview',
+    component: Interview
   }
 ]
 

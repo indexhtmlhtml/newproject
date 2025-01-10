@@ -19,16 +19,25 @@
               </svg>
               {{ Object.entries(languages).find(([_, code]) => code === languageStore.currentLanguage)?.[0] || '中文' }}
             </button>
-            <div v-if="showLanguageMenu" class="language-menu">
-              <button 
-                v-for="(lang, name) in languages" 
-                :key="lang"
-                @click="changeLanguage(lang)"
-                :class="{ active: languageStore.currentLanguage === lang }"
-              >
-                {{ name }}
-              </button>
-            </div>
+            <transition 
+              name="menu" 
+              @before-enter="beforeEnter"
+              @enter="enter"
+              @leave="leave"
+              @after-leave="afterLeave"
+            >
+              <div v-if="showLanguageMenu" class="language-menu">
+                <button 
+                  v-for="(lang, name) in languages" 
+                  :key="lang"
+                  @click="changeLanguage(lang)"
+                  :class="{ active: languageStore.currentLanguage === lang }"
+                  :style="{ '--delay': `${index * 0.05}s` }"
+                >
+                  {{ name }}
+                </button>
+              </div>
+            </transition>
           </div>
           <button class="user-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -226,8 +235,12 @@ const toggleLanguageMenu = () => {
 }
 
 const changeLanguage = (lang) => {
+  document.body.classList.add('language-transition')
   languageStore.setLanguage(lang)
   showLanguageMenu.value = false
+  setTimeout(() => {
+    document.body.classList.remove('language-transition')
+  }, 400)
 }
 
 const logout = () => {
@@ -242,6 +255,36 @@ const languages = {
   'English': 'en',
   '中文': 'zh',
   '日本語': 'ja'
+}
+
+const beforeEnter = (el) => {
+  el.style.transformOrigin = 'top right'
+  el.style.transform = 'scale(0.95) translateY(-10px)'
+  el.style.opacity = '0'
+  el.style.filter = 'blur(4px)'
+}
+
+const enter = (el, done) => {
+  el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+  requestAnimationFrame(() => {
+    el.style.transform = 'scale(1) translateY(0)'
+    el.style.opacity = '1'
+    el.style.filter = 'blur(0)'
+  })
+}
+
+const leave = (el, done) => {
+  el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+  el.style.transform = 'scale(0.95) translateY(-10px)'
+  el.style.opacity = '0'
+  el.style.filter = 'blur(4px)'
+  setTimeout(done, 300)
+}
+
+const afterLeave = (el) => {
+  el.style.transform = ''
+  el.style.opacity = ''
+  el.style.filter = ''
 }
 </script>
 
@@ -453,34 +496,95 @@ const languages = {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 8px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  margin-top: 8px;
   z-index: 1000;
-  min-width: 120px;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.menu-enter-active,
+.menu-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-enter-from,
+.menu-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
 }
 
 .language-menu button {
   display: block;
   width: 100%;
-  padding: 12px 24px;
+  padding: 8px 16px;
+  text-align: left;
   border: none;
   background: transparent;
   cursor: pointer;
-  text-align: left;
-  transition: all 0.3s ease;
-  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: left;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: slideIn 0.3s ease forwards;
+  animation-delay: var(--delay);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .language-menu button:hover {
-  background: #f5f5f5;
+  background: #f5f7ff;
+  transform: translateX(5px) scale(1.02);
+  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.1);
 }
 
 .language-menu button.active {
   color: #4F6EF7;
-  background: #f5f7ff;
+  background: #f0f2ff;
+  font-weight: 500;
+  position: relative;
+}
+
+.language-menu button.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #4F6EF7;
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.language-menu button.active:hover::before {
+  transform: scaleY(1);
+}
+
+/* 语言按钮动画 */
+.lang-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lang-btn:hover {
+  background: rgba(79, 110, 247, 0.1);
+  transform: translateY(-1px);
+}
+
+.lang-btn:active {
+  transform: translateY(0);
 }
 
 .ai-assistant-btn {
@@ -732,5 +836,10 @@ const languages = {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(255, 77, 79, 0);
   }
+}
+
+/* 添加全局语言切换过渡效果 */
+:global(.language-transition) * {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 </style>

@@ -21,4 +21,6 @@ const i18n = createI18n({
 app.use(pinia)
 app.use(router)
 app.use(i18n)
+
+// 先挂载应用
 app.mount('#app')

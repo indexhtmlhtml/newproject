@@ -32,20 +32,33 @@
                 <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
                 <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
               </svg>
-              <h3>{{ t('paper.questionTypes.title') }}</h3>
+              <h3>题型设置</h3>
             </div>
 
-            <div class="type-grid">
-              <div v-for="type in questionTypes" :key="type.id" class="type-item">
-                <label>{{ t(`paper.questionTypes.${type.id}`) }}</label>
-                <div class="type-controls">
+            <div class="types-dropdown" @click="toggleDropdown">
+              <div class="dropdown-header">
+                <span>选择题型</span>
+                <svg :class="['dropdown-arrow', { 'open': isDropdownOpen }]" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M7 10l5 5 5-5z"/>
+                </svg>
+              </div>
+              <div v-show="isDropdownOpen" class="dropdown-content">
+                <div v-for="type in questionTypesList" :key="type.value" class="type-item">
+                  <label>
+                    <input 
+                      type="checkbox" 
+                      v-model="selectedTypes" 
+                      :value="type.value"
+                      @change="handleTypeChange(type.value)"
+                    >
+                    {{ type.label }}
+                  </label>
                   <input 
                     type="number" 
-                    v-model="type.count" 
+                    v-model="counts[type.value]" 
                     min="0" 
-                    :max="type.max"
+                    :disabled="!selectedTypes.includes(type.value)"
                   >
-                  <span class="count-label">题</span>
                 </div>
               </div>
             </div>
@@ -148,7 +161,7 @@
                     </svg>
                   </div>
                   <div class="btn-text">
-                    <span class="primary-text">{{ t('paper.startSolving') }}</span>
+                    <span class="primary-text">开始答题</span>
                     <span class="secondary-text">{{ duration }}分钟</span>
                   </div>
                 </div>
@@ -276,6 +289,103 @@
                   </div>
                 </div>
               </div>
+
+              <!-- 判断题部分 -->
+              <div v-if="paper.truefalse && paper.truefalse.length" class="question-type-section">
+                <h4>判断题</h4>
+                <div class="questions-list">
+                  <div v-for="(question, index) in paper.truefalse" :key="index" class="question-item">
+                    <div class="question-header">
+                      <span class="question-number">{{ index + 1 }}</span>
+                      <span class="question-score">({{ question.score }}分)</span>
+                    </div>
+                    <div class="question-content">{{ question.content }}</div>
+                    <div class="question-footer">
+                      <div class="answer-section" v-if="showAnswers[`truefalse_${index}`]">
+                        <div class="question-answer">
+                          <span class="answer-label">答案：</span>
+                          <span class="answer-content">{{ question.answer ? '正确' : '错误' }}</span>
+                        </div>
+                      </div>
+                      <div class="question-actions">
+                        <button class="answer-btn" @click="toggleAnswer('truefalse', index)">
+                          {{ showAnswers[`truefalse_${index}`] ? '隐藏答案' : '查看答案' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 简答题部分 -->
+              <div v-if="paper.shortanswer && paper.shortanswer.length" class="question-type-section">
+                <h4>简答题</h4>
+                <div class="questions-list">
+                  <div v-for="(question, index) in paper.shortanswer" :key="index" class="question-item">
+                    <div class="question-header">
+                      <span class="question-number">{{ index + 1 }}</span>
+                      <span class="question-score">({{ question.score }}分)</span>
+                    </div>
+                    <div class="question-content">{{ question.content }}</div>
+                    <div class="question-footer">
+                      <div class="answer-section" v-if="showAnswers[`shortanswer_${index}`]">
+                        <div class="question-answer">
+                          <span class="answer-label">参考答案：</span>
+                          <div class="answer-content">{{ question.answer }}</div>
+                        </div>
+                      </div>
+                      <div class="question-actions">
+                        <button class="answer-btn" @click="toggleAnswer('shortanswer', index)">
+                          {{ showAnswers[`shortanswer_${index}`] ? '隐藏答案' : '查看答案' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 匹配题部分 -->
+              <div v-if="paper.matching && paper.matching.length" class="question-type-section">
+                <h4>匹配题</h4>
+                <div class="questions-list">
+                  <div v-for="(question, index) in paper.matching" :key="index" class="question-item">
+                    <div class="question-header">
+                      <span class="question-number">{{ index + 1 }}</span>
+                      <span class="question-score">({{ question.score }}分)</span>
+                    </div>
+                    <div class="question-content">{{ question.content }}</div>
+                    <div class="matching-items">
+                      <div class="matching-column">
+                        <div v-for="(item, itemIndex) in question.leftItems" :key="itemIndex" class="matching-item">
+                          {{ itemIndex + 1 }}. {{ item }}
+                        </div>
+                      </div>
+                      <div class="matching-column">
+                        <div v-for="(item, itemIndex) in question.rightItems" :key="itemIndex" class="matching-item">
+                          {{ String.fromCharCode(65 + itemIndex) }}. {{ item }}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="question-footer">
+                      <div class="answer-section" v-if="showAnswers[`matching_${index}`]">
+                        <div class="question-answer">
+                          <span class="answer-label">答案：</span>
+                          <div class="answer-pairs">
+                            <div v-for="[left, right] in question.answer" :key="left" class="answer-pair">
+                              {{ left + 1 }} → {{ String.fromCharCode(65 + right) }}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="question-actions">
+                        <button class="answer-btn" @click="toggleAnswer('matching', index)">
+                          {{ showAnswers[`matching_${index}`] ? '隐藏答案' : '查看答案' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -347,20 +457,58 @@ const toggleAnswer = (type, index) => {
   showAnswers.value[key] = !showAnswers.value[key]
 }
 
-// 验证配置是否有效
-const isValid = computed(() => {
-  const hasQuestions = questionTypes.value.some(type => type.count > 0)
-  const totalQuestions = questionTypes.value.reduce((sum, type) => sum + type.count, 0)
-  return hasQuestions && totalQuestions <= 20
+// 添加题型列表
+const questionTypesList = [
+  { value: 'choice', label: '选择题' },
+  { value: 'programming', label: '编程题' },
+  { value: 'completion', label: '填空题' },
+  { value: 'truefalse', label: '判断题' },
+  { value: 'shortanswer', label: '简答题' },
+  { value: 'matching', label: '匹配题' }
+]
+
+// 下拉框状态
+const isDropdownOpen = ref(false)
+
+// 切换下拉框
+const toggleDropdown = () => {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+
+// 选中的题型
+const selectedTypes = ref(['choice', 'programming', 'completion', 'truefalse', 'shortanswer', 'matching'])
+
+// 题型数量
+const counts = ref({
+  choice: 5,
+  programming: 2,
+  completion: 3,
+  truefalse: 1,
+  shortanswer: 1,
+  matching: 1
 })
 
-// 生成试卷
+// 处理题型变化
+const handleTypeChange = (type) => {
+  if (selectedTypes.value.includes(type)) {
+    counts.value[type] = counts.value[type] || 1
+  } else {
+    counts.value[type] = 0
+  }
+}
+
+// 验证配置是否有效
+const isValid = computed(() => {
+  const totalQuestions = Object.values(counts.value).reduce((sum, count) => sum + count, 0)
+  return totalQuestions > 0 && totalQuestions <= 20
+})
+
+// 修改生成试卷的函数
 const handleGeneratePaper = async () => {
   if (!isValid.value || isGenerating.value) return
   
   try {
     isGenerating.value = true
-    // 开始状态更新循环
     let stepIndex = 0
     generatingStatus.value = generatingSteps[0]
     statusInterval = setInterval(() => {
@@ -369,22 +517,22 @@ const handleGeneratePaper = async () => {
     }, 3000)
 
     const params = {
+      title: '',
       duration: duration.value,
       totalScore: totalScore.value,
       difficulty: selectedDifficulty.value,
-      questionTypes: questionTypes.value.reduce((acc, type) => {
-        acc[type.id] = {
-          name: type.name,
-          count: type.count,
-          score: type.score
-        }
-        return acc
-      }, {}),
+      counts: counts.value,
       language: languageStore.currentLanguage
     }
 
     const result = await generatePaperAPI(params)
-    paper.value = result
+    paper.value = {
+      ...result,
+      title: result.title || t('paper.defaultTitle'),
+      duration: duration.value,
+      totalScore: totalScore.value,
+      difficulty: selectedDifficulty.value
+    }
   } catch (error) {
     console.error('Failed to generate paper:', error)
     alert(t('paper.generateError'))
@@ -606,8 +754,10 @@ const solveProblem = (question, type, index) => {
 .preview-section {
   padding: 24px;
   background: #f8f9fa;
+  height: 800px;
   overflow-y: auto;
-  max-height: 800px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
 }
 
 .loading-spinner {
@@ -1009,5 +1159,161 @@ const solveProblem = (question, type, index) => {
   padding: 12px;
   background: #f5f7ff;
   border-radius: 8px;
+}
+
+.question-types {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.type-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.type-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.type-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #1a73e8;
+}
+
+.type-item input[type="number"] {
+  width: 80px;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.type-item input[type="number"]:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.matching-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.matching-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.matching-item {
+  padding: 12px;
+  background: #f5f7ff;
+  border-radius: 8px;
+}
+
+.answer-pairs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.answer-pair {
+  padding: 4px 12px;
+  background: #e8f0fe;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.answer-content {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.types-dropdown {
+  position: relative;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+.dropdown-header:hover {
+  background-color: #f5f7ff;
+}
+
+.dropdown-arrow {
+  transition: transform 0.3s;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-top: 4px;
+  z-index: 100;
+  padding: 8px;
+}
+
+.type-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+}
+
+.type-item:hover {
+  background-color: #f5f7ff;
+}
+
+.type-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.type-item input[type="number"] {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.type-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #1a73e8;
 }
 </style>

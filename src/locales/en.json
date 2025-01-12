@@ -1,0 +1,20 @@
+{
+  "paper": {
+    "questionTypes": {
+      "choice": "Multiple Choice",
+      "programming": "Programming",
+      "completion": "Fill in the Blank",
+      "truefalse": "True/False",
+      "shortanswer": "Short Answer",
+      "matching": "Matching"
+    },
+    "true": "True",
+    "false": "False",
+    "correct": "Correct",
+    "wrong": "Wrong",
+    "noAnswer": "No Answer",
+    "yourAnswer": "Your Answer",
+    "correctAnswer": "Correct Answer",
+    "totalScore": "Total Score"
+  }
+} 

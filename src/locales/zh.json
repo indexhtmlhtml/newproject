@@ -6,5 +6,23 @@
     "easy": "简单",
     "medium": "中等",
     "hard": "困难"
+  },
+  "paper": {
+    "questionTypes": {
+      "choice": "选择题",
+      "programming": "编程题",
+      "completion": "填空题",
+      "truefalse": "判断题",
+      "shortanswer": "简答题",
+      "matching": "匹配题"
+    },
+    "true": "正确",
+    "false": "错误",
+    "correct": "正确",
+    "wrong": "错误",
+    "noAnswer": "未作答",
+    "yourAnswer": "你的答案",
+    "correctAnswer": "正确答案",
+    "totalScore": "总分"
   }
 } 

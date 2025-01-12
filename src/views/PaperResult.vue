@@ -24,7 +24,7 @@
               </svg>
               <div class="score-text">
                 <span class="current-score">{{ totalScore }}</span>
-                <span class="total-score">/{{ paper?.totalScore || 100 }}</span>
+                <span class="total-score">/{{ maxScores.choice + maxScores.programming + maxScores.completion }}</span>
               </div>
             </div>
             <div class="score-label">{{ t('paper.totalScore') }}</div>
@@ -32,9 +32,20 @@
 
           <!-- 分类得分卡片 -->
           <div class="score-cards">
-            <div class="score-type-card" v-for="(score, type) in scores" :key="type">
+            <div class="score-type-card" 
+                 v-for="(score, type) in scores" 
+                 :key="type"
+                 v-if="maxScores[type] > 0">
               <div class="card-header">
-                <span class="card-title">{{ t(`paper.questionTypes.${type}`) }}</span>
+                <span class="card-title">
+                  {{ type === 'choice' ? '选择题' :
+                     type === 'programming' ? '编程题' :
+                     type === 'completion' ? '填空题' :
+                     type === 'truefalse' ? '判断题' :
+                     type === 'shortanswer' ? '简答题' :
+                     type === 'matching' ? '匹配题' : ''
+                  }}
+                </span>
                 <span class="card-score">{{ score }}/{{ maxScores[type] }}</span>
               </div>
               <div class="progress-bar">
@@ -145,6 +156,101 @@
               </div>
             </div>
           </div>
+
+          <!-- 判断题回顾 -->
+          <div v-if="paper?.truefalse?.length" class="question-section">
+            <div class="section-header">
+              <h4>判断题</h4>
+              <span class="section-score">{{ scores.truefalse }}/{{ maxScores.truefalse }}</span>
+            </div>
+            <div v-for="(question, index) in paper.truefalse" :key="index" class="question-item">
+              <div class="question-header">
+                <span class="question-number">{{ index + 1 }}</span>
+                <span :class="['status-badge', answers.truefalse[index] === question.answer ? 'correct' : 'wrong']">
+                  {{ answers.truefalse[index] === question.answer ? t('paper.correct') : t('paper.wrong') }}
+                </span>
+              </div>
+              <div class="question-content">{{ question.content }}</div>
+              <div class="answer-review">
+                <div class="answer-item">
+                  <div class="answer-label">{{ t('paper.yourAnswer') }}</div>
+                  <div :class="['answer-text', answers.truefalse[index] === question.answer ? 'correct' : 'wrong']">
+                    {{ answers.truefalse[index] === null ? t('paper.noAnswer') : answers.truefalse[index] ? t('paper.true') : t('paper.false') }}
+                  </div>
+                </div>
+                <div class="answer-item">
+                  <div class="answer-label">{{ t('paper.correctAnswer') }}</div>
+                  <div class="answer-text correct">{{ question.answer ? t('paper.true') : t('paper.false') }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 简答题回顾 -->
+          <div v-if="paper?.shortanswer?.length" class="question-section">
+            <div class="section-header">
+              <h4>简答题</h4>
+              <span class="section-score">{{ scores.shortanswer }}/{{ maxScores.shortanswer }}</span>
+            </div>
+            <div v-for="(question, index) in paper.shortanswer" :key="index" class="question-item">
+              <div class="question-header">
+                <span class="question-number">{{ index + 1 }}</span>
+                <span class="question-score">{{ question.score }}分</span>
+              </div>
+              <div class="question-content">{{ question.content }}</div>
+              <div class="answer-review">
+                <div class="answer-item">
+                  <div class="answer-label">{{ t('paper.yourAnswer') }}</div>
+                  <div class="answer-text">{{ answers.shortanswer[index] || t('paper.noAnswer') }}</div>
+                </div>
+                <div class="answer-item">
+                  <div class="answer-label">{{ t('paper.correctAnswer') }}</div>
+                  <div class="answer-text">{{ question.answer }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 匹配题回顾 -->
+          <div v-if="paper?.matching?.length" class="question-section">
+            <div class="section-header">
+              <h4>匹配题</h4>
+              <span class="section-score">{{ scores.matching }}/{{ maxScores.matching }}</span>
+            </div>
+            <div v-for="(question, index) in paper.matching" :key="index" class="question-item">
+              <div class="question-header">
+                <span class="question-number">{{ index + 1 }}</span>
+                <span :class="['status-badge', isMatchingCorrect(index) ? 'correct' : 'wrong']">
+                  {{ isMatchingCorrect(index) ? t('paper.correct') : t('paper.wrong') }}
+                </span>
+              </div>
+              <div class="question-content">{{ question.content }}</div>
+              <div class="matching-review">
+                <!-- 显示用户的匹配答案 -->
+                <div class="user-matching">
+                  <div class="answer-label">{{ t('paper.yourAnswer') }}</div>
+                  <div v-for="(leftItem, leftIndex) in question.leftItems" :key="leftIndex" class="matching-pair">
+                    <div class="left-item">{{ leftItem }}</div>
+                    <span class="arrow">→</span>
+                    <div class="right-item">
+                      {{ answers.matching[index]?.[leftIndex] !== undefined ? 
+                         question.rightItems[answers.matching[index][leftIndex]] : 
+                         t('paper.noAnswer') }}
+                    </div>
+                  </div>
+                </div>
+                <!-- 显示正确答案 -->
+                <div class="correct-matching">
+                  <div class="answer-label">{{ t('paper.correctAnswer') }}</div>
+                  <div v-for="[leftIndex, rightIndex] in question.answer" :key="leftIndex" class="matching-pair">
+                    <div class="left-item">{{ question.leftItems[leftIndex] }}</div>
+                    <span class="arrow">→</span>
+                    <div class="right-item">{{ question.rightItems[rightIndex] }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -161,11 +267,32 @@ const { t } = useI18n()
 
 const paper = ref(null)
 const answers = ref(null)
-const scores = ref({ choice: 0, programming: 0, completion: 0 })
-const maxScores = ref({ choice: 0, programming: 0, completion: 0 })
+const scores = ref({
+  choice: 0,
+  programming: 0,
+  completion: 0,
+  truefalse: 0,
+  shortanswer: 0,
+  matching: 0
+})
+const maxScores = ref({
+  choice: 0,
+  programming: 0,
+  completion: 0,
+  truefalse: 0,
+  shortanswer: 0,
+  matching: 0
+})
 
+// 修改总分计算
 const totalScore = computed(() => {
-  return scores.value.choice + scores.value.programming + scores.value.completion
+  return Object.values(scores.value).reduce((sum, score) => sum + score, 0)
+})
+
+// 修改总分百分比计算
+const scorePercentage = computed(() => {
+  const maxTotal = Object.values(maxScores.value).reduce((sum, score) => sum + score, 0)
+  return maxTotal > 0 ? (totalScore.value / maxTotal * 100).toFixed(0) : 0
 })
 
 onMounted(() => {
@@ -182,30 +309,59 @@ onMounted(() => {
   }
 })
 
+// 修改计算分数的函数
 const calculateScores = () => {
-  // 计算各题型得分
-  if (paper.value.choice) {
-    scores.value.choice = paper.value.choice.reduce((sum, q, i) => {
-      maxScores.value.choice += q.score
-      return sum + (answers.value.choice[i] === q.answer ? q.score : 0)
-    }, 0)
-  }
+  // 重置分数
+  Object.keys(scores.value).forEach(type => {
+    scores.value[type] = 0
+    maxScores.value[type] = 0
+  })
   
-  // 编程题和填空题的得分计算
-  if (paper.value.programming) {
-    scores.value.programming = paper.value.programming.reduce((sum, q, i) => {
-      maxScores.value.programming += q.score
-      // 这里可以添加更复杂的评分逻辑
-      return sum + (answers.value.programming[i] === q.answer ? q.score : 0)
-    }, 0)
-  }
+  // 遍历所有题型计算分数
+  Object.entries(paper.value || {}).forEach(([type, questions]) => {
+    if (!Array.isArray(questions)) return
 
-  if (paper.value.completion) {
-    scores.value.completion = paper.value.completion.reduce((sum, q, i) => {
-      maxScores.value.completion += q.score
-      return sum + (answers.value.completion[i] === q.answer ? q.score : 0)
-    }, 0)
-  }
+    questions.forEach((q, i) => {
+      maxScores.value[type] += q.score || 0
+
+      switch (type) {
+        case 'choice':
+        case 'completion':
+        case 'truefalse':
+          if (answers.value[type][i] === q.answer) {
+            scores.value[type] += q.score || 0
+          }
+          break
+        case 'programming':
+          if (answers.value[type][i]?.trim() === q.answer?.trim()) {
+            scores.value[type] += q.score || 0
+          }
+          break
+        case 'shortanswer':
+          // 简答题需要人工评分，这里只计算总分
+          break
+        case 'matching':
+          if (isMatchingCorrect(i)) {
+            scores.value[type] += q.score || 0
+          }
+          break
+      }
+    })
+  })
+}
+
+// 修改匹配题判断函数
+const isMatchingCorrect = (index) => {
+  if (!paper.value?.matching?.[index] || !answers.value?.matching?.[index]) return false
+  
+  const question = paper.value.matching[index]
+  const answer = answers.value.matching[index]
+  
+  // 确保答案数组完整且所有选项都已选择
+  if (!Array.isArray(answer) || answer.length !== question.leftItems.length) return false
+  
+  // 检查每个匹配是否正确
+  return question.answer.every(([leftIndex, rightIndex]) => answer[leftIndex] === rightIndex)
 }
 
 // 添加返回按钮处理函数
@@ -507,5 +663,44 @@ const handleBack = () => {
 .answer-code.wrong {
   background: #ffebee;
   color: #c62828;
+}
+
+.matching-review {
+  margin-top: 16px;
+  display: grid;
+  gap: 24px;
+}
+
+.matching-pair {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.left-item, .right-item {
+  padding: 8px 12px;
+  background: #f5f7ff;
+  border-radius: 6px;
+  flex: 1;
+}
+
+.arrow {
+  color: #666;
+  font-weight: bold;
+}
+
+.correct-matching {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #eee;
+}
+
+.answer-text {
+  white-space: pre-wrap;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  font-family: inherit;
 }
 </style> 

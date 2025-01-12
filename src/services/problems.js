@@ -3,6 +3,79 @@ import axios from 'axios'
 const API_URL = 'https://api.deepseek.com'
 const API_KEY = 'sk-1bb183d7bd70432e9f0deafbbfe89bb9'
 
+const DEEPSEEK_PROMPT = `你是一个专业的编程考试出题专家。请按照以下格式生成试题：
+
+1. 选择题 (choice):
+{
+  "type": "choice",
+  "content": "题目内容",
+  "options": {
+    "A": "选项A",
+    "B": "选项B",
+    "C": "选项C",
+    "D": "选项D"
+  },
+  "answer": "正确选项字母",
+  "score": 分值
+}
+
+2. 编程题 (programming):
+{
+  "type": "programming",
+  "content": "题目描述",
+  "example": {
+    "input": "示例输入",
+    "output": "示例输出"
+  },
+  "answer": "参考代码",
+  "score": 分值
+}
+
+3. 填空题 (completion):
+{
+  "type": "completion",
+  "content": "题目内容，空格用___表示",
+  "answer": "正确答案",
+  "score": 分值
+}
+
+4. 判断题 (truefalse):
+{
+  "type": "truefalse",
+  "content": "判断题目内容",
+  "answer": true或false,
+  "score": 分值
+}
+
+5. 简答题 (shortanswer):
+{
+  "type": "shortanswer",
+  "content": "题目内容",
+  "answer": "参考答案要点",
+  "score": 分值
+}
+
+6. 匹配题 (matching):
+{
+  "type": "matching",
+  "content": "题目说明",
+  "leftItems": ["左边项目1", "左边项目2", ...],
+  "rightItems": ["右边项目1", "右边项目2", ...],
+  "answer": [
+    [0, 2],  // 表示左边第1项匹配右边第3项
+    [1, 0],  // 表示左边第2项匹配右边第1项
+    ...
+  ],
+  "score": 分值
+}
+
+请确保：
+1. 所有题目难度符合要求
+2. 答案明确且准确
+3. 分值合理分配
+4. JSON格式正确
+5. 编程相关内容准确无误`
+
 export const getProblem = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/problems/${id}`)

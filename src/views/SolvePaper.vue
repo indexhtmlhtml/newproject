@@ -186,7 +186,7 @@
                   已作答
                 </div>
               </div>
-              <div class="question-content">{{ question.content }}</div>
+              <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
               <div class="options-list">
                 <label v-for="(option, key) in question.options" 
                        :key="key" 
@@ -221,7 +221,7 @@
                   已作答
                 </div>
               </div>
-              <div class="question-content">{{ question.content }}</div>
+              <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
               <textarea 
                 v-model="answers.programming[index]"
                 :placeholder="t('problems.answerPlaceholder')"
@@ -251,7 +251,7 @@
                   已作答
                 </div>
               </div>
-              <div class="question-content">{{ question.content }}</div>
+              <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
               <input 
                 type="text" 
                 v-model="answers.completion[index]"
@@ -281,7 +281,7 @@
                   已作答
                 </div>
               </div>
-              <div class="question-content">{{ question.content }}</div>
+              <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
               <div class="truefalse-options">
                 <label class="radio-label">
                   <input type="radio" 
@@ -319,7 +319,7 @@
                   已作答
                 </div>
               </div>
-              <div class="question-content">{{ question.content }}</div>
+              <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
               <textarea 
                 v-model="answers.shortanswer[index]"
                 :placeholder="t('problems.answerPlaceholder')"
@@ -343,7 +343,7 @@
                   <span class="question-score">{{ question.score }}分</span>
                 </div>
               </div>
-              <div class="question-content">{{ question.content }}</div>
+              <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
               <div class="matching-container">
                 <div class="matching-column">
                   <div v-for="(item, itemIndex) in question.leftItems" 
@@ -439,22 +439,21 @@ const confirmExit = () => {
   }
 }
 
-const submitPaper = async () => {
-  try {
-    // 保存答案到 localStorage
-    localStorage.setItem('paperAnswers', JSON.stringify(answers.value))
-    
-    // 清除计时器
-    clearInterval(timer.value)
-    
-    // 跳转到结果页面
-    router.push('/paper-result')
-  } catch (error) {
-    console.error('Submit paper error:', error)
-  }
+const submitPaper = () => {
+  // 记录结束时间
+  localStorage.setItem('examEndTime', new Date().toISOString())
+  
+  // 保存答案
+  localStorage.setItem('paperAnswers', JSON.stringify(answers.value))
+  
+  // 跳转到结果页面
+  router.push('/paper-result')
 }
 
 onMounted(() => {
+  // 记录开始答题时间
+  localStorage.setItem('examStartTime', new Date().toISOString())
+  
   // 从 localStorage 获取试卷数据
   const paperData = localStorage.getItem('currentPaper')
   if (paperData) {
@@ -638,6 +637,28 @@ const isMatchingQuestionAnswered = (index) => {
   return Array.isArray(answer) && 
          answer.length === paper.value.matching[index].leftItems.length && 
          answer.some(item => item !== null && item !== undefined && item !== '')
+}
+
+// 添加代码格式化函数
+const formatQuestionContent = (content) => {
+  if (!content) return ''
+  
+  // 使用正则表达式匹配代码块
+  return content.replace(/```([\s\S]*?)```/g, (match, code) => {
+    return `<pre class="code-block"><code>${escapeHtml(code.trim())}</code></pre>`
+  }).replace(/`([^`]+)`/g, (match, code) => {
+    return `<code class="inline-code">${escapeHtml(code)}</code>`
+  })
+}
+
+// HTML转义函数
+const escapeHtml = (unsafe) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
 }
 </script>
 
@@ -1247,5 +1268,102 @@ const isMatchingQuestionAnswered = (index) => {
   margin-bottom: 12px;
   background: white;
   cursor: pointer;
+}
+
+/* 添加代码块样式 */
+:deep(.code-block) {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+:deep(.inline-code) {
+  background: #f3f3f3;
+  color: #e83e8c;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+/* 添加代码高亮样式 */
+:deep(.code-block) {
+  position: relative;
+}
+
+:deep(.code-block::before) {
+  content: 'Code';
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #333;
+  color: #fff;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 0 8px 0 8px;
+  opacity: 0.8;
+}
+
+/* 优化代码块滚动条 */
+:deep(.code-block::-webkit-scrollbar) {
+  height: 8px;
+}
+
+:deep(.code-block::-webkit-scrollbar-track) {
+  background: #2d2d2d;
+  border-radius: 4px;
+}
+
+:deep(.code-block::-webkit-scrollbar-thumb) {
+  background: #666;
+  border-radius: 4px;
+}
+
+:deep(.code-block::-webkit-scrollbar-thumb:hover) {
+  background: #888;
+}
+
+/* 添加行号样式（可选） */
+:deep(.code-block code) {
+  counter-reset: line;
+  display: block;
+}
+
+:deep(.code-block code > span) {
+  display: block;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 3em;
+}
+
+:deep(.code-block code > span::before) {
+  counter-increment: line;
+  content: counter(line);
+  position: absolute;
+  left: -1em;
+  width: 2.5em;
+  text-align: right;
+  color: #666;
+  padding-right: 1em;
+  border-right: 1px solid #444;
+}
+
+/* 优化问题内容的整体样式 */
+.question-content {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #333;
+  margin: 16px 0;
+}
+
+.question-content p {
+  margin: 12px 0;
 }
 </style> 

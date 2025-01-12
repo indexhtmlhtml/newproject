@@ -35,14 +35,19 @@
               <h3>题型设置</h3>
             </div>
 
-            <div class="types-dropdown" @click="toggleDropdown">
-              <div class="dropdown-header">
+            <div class="types-dropdown">
+              <div class="dropdown-header" @click="openDropdown">
                 <span>选择题型</span>
                 <svg :class="['dropdown-arrow', { 'open': isDropdownOpen }]" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M7 10l5 5 5-5z"/>
                 </svg>
               </div>
-              <div v-show="isDropdownOpen" class="dropdown-content">
+              <div v-show="isDropdownOpen" class="dropdown-content" @click.stop>
+                <div class="dropdown-close" @click="closeDropdown">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                </div>
                 <div v-for="type in questionTypesList" :key="type.value" class="type-item">
                   <label>
                     <input 
@@ -490,9 +495,7 @@ const counts = ref({
 
 // 处理题型变化
 const handleTypeChange = (type) => {
-  if (selectedTypes.value.includes(type)) {
-    counts.value[type] = counts.value[type] || 1
-  } else {
+  if (!selectedTypes.value.includes(type)) {
     counts.value[type] = 0
   }
 }
@@ -571,6 +574,35 @@ const solveProblem = (question, type, index) => {
   }))
   // 跳转到做题页面
   router.push('/solve-problem')
+}
+
+// 修改下拉框控制逻辑
+const openDropdown = () => {
+  isDropdownOpen.value = true
+}
+
+const closeDropdown = () => {
+  isDropdownOpen.value = false
+}
+
+// 添加点击外部关闭指令
+const vClickOutside = {
+  mounted(el, binding) {
+    el.clickOutsideEvent = (event) => {
+      if (!(el === event.target || el.contains(event.target))) {
+        binding.value(event)
+      }
+    }
+    document.addEventListener('click', el.clickOutsideEvent)
+  },
+  unmounted(el) {
+    document.removeEventListener('click', el.clickOutsideEvent)
+  }
+}
+
+// 注册自定义指令
+const directives = {
+  'click-outside': vClickOutside
 }
 </script>
 
@@ -1278,42 +1310,41 @@ const solveProblem = (question, type, index) => {
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-top: 4px;
-  z-index: 100;
-  padding: 8px;
-}
-
-.type-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 12px;
-  border-radius: 6px;
-  transition: background-color 0.3s;
+  margin-top: 8px;
+  z-index: 100;
 }
 
-.type-item:hover {
-  background-color: #f5f7ff;
-}
-
-.type-item label {
+.dropdown-close {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  padding: 4px;
+  margin-bottom: 8px;
   cursor: pointer;
 }
 
-.type-item input[type="number"] {
-  width: 60px;
-  padding: 4px 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  text-align: center;
+.dropdown-close svg {
+  color: #666;
+  transition: color 0.3s ease;
 }
 
-.type-item input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #1a73e8;
+.dropdown-close:hover svg {
+  color: #1a73e8;
+}
+
+/* 添加动画效果 */
+.dropdown-content {
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

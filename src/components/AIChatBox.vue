@@ -38,7 +38,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
-import { messages as i18nMessages } from '../locales'
 import { useLanguageStore } from '../stores/language'
 import { useI18n } from 'vue-i18n'
 
@@ -83,11 +82,6 @@ const sendMessage = async () => {
     userInput.value = ''
     isLoading.value = true
 
-    console.log('Sending message:', {
-      userMessage,
-      currentLanguage: languageStore.currentLanguage
-    })
-
     const response = await axios.post(API_URL, {
       messages: [
         {
@@ -107,8 +101,6 @@ const sendMessage = async () => {
         'Content-Type': 'application/json'
       }
     })
-
-    console.log('API Response:', response.data)
 
     const assistantMessage = {
       role: 'assistant',
@@ -146,10 +138,12 @@ onMounted(() => {
 
 <style scoped>
 .chat-box {
-  background: white;
+  background: var(--vt-c-background-light);
   display: flex;
   flex-direction: column;
   height: 100%;
+  border-radius: var(--vt-c-border-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .chat-messages {
@@ -164,7 +158,7 @@ onMounted(() => {
 .message {
   max-width: 80%;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: var(--vt-c-border-radius);
   line-height: 1.5;
   margin-bottom: 16px;
   animation: slideIn 0.3s ease;
@@ -172,14 +166,14 @@ onMounted(() => {
 
 .message.user {
   align-self: flex-end;
-  background: #4F6EF7;
-  color: white;
+  background: var(--vt-c-primary);
+  color: var(--vt-c-white);
 }
 
 .message.assistant {
   align-self: flex-start;
-  background: #f5f7ff;
-  color: #333;
+  background: var(--vt-c-background-light);
+  color: var(--vt-c-text-primary);
 }
 
 .message.system {
@@ -193,31 +187,31 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   padding: 16px;
-  background: #f5f7ff;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
+  background: var(--vt-c-background-dark);
+  border-bottom-left-radius: var(--vt-c-border-radius);
+  border-bottom-right-radius: var(--vt-c-border-radius);
 }
 
 .chat-input input {
   flex: 1;
   padding: 12px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: var(--vt-c-border-radius);
   font-size: 14px;
 }
 
 .send-btn {
   padding: 0 24px;
-  background: #4F6EF7;
-  color: white;
+  background: var(--vt-c-primary);
+  color: var(--vt-c-white);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--vt-c-border-radius);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--vt-c-transition);
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #3D5CE5;
+  background: var(--vt-c-secondary);
 }
 
 .send-btn:disabled {
@@ -231,7 +225,7 @@ onMounted(() => {
   height: 20px;
   border: 2px solid rgba(255,255,255,0.3);
   border-radius: 50%;
-  border-top-color: white;
+  border-top-color: var(--vt-c-white);
   animation: spin 1s linear infinite;
 }
 
@@ -242,7 +236,7 @@ onMounted(() => {
 .message pre {
   background: #f8f9fa;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--vt-c-border-radius);
   overflow-x: auto;
   margin: 8px 0;
 }
@@ -263,7 +257,7 @@ onMounted(() => {
 .typing-indicator span {
   width: 8px;
   height: 8px;
-  background: #4F6EF7;
+  background: var(--vt-c-primary);
   border-radius: 50%;
   display: inline-block;
   opacity: 0.4;

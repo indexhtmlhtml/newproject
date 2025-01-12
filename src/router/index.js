@@ -45,6 +45,21 @@ const routes = [
     path: '/interview',
     name: 'Interview',
     component: Interview
+  },
+  {
+    path: '/solve-paper',
+    name: 'SolvePaper',
+    component: () => import('../views/SolvePaper.vue')
+  },
+  {
+    path: '/solve-problem',
+    name: 'SolveProblem',
+    component: () => import('../views/SolveProblem.vue')
+  },
+  {
+    path: '/paper-result',
+    name: 'PaperResult',
+    component: () => import('../views/PaperResult.vue')
   }
 ]
 

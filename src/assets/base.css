@@ -19,6 +19,16 @@
   --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
   --vt-c-text-dark-1: var(--vt-c-white);
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+
+  --vt-c-primary: #4F6EF7;
+  --vt-c-secondary: #3D5CE5;
+  --vt-c-accent: #00bd7e;
+  --vt-c-background-light: #f5f7ff;
+  --vt-c-background-dark: #e9ecff;
+  --vt-c-text-primary: #333;
+  --vt-c-text-secondary: #666;
+  --vt-c-border-radius: 8px;
+  --vt-c-transition: all 0.3s ease;
 }
 
 /* semantic color variables for this project */
@@ -60,27 +70,38 @@
 
 body {
   min-height: 100vh;
-  color: var(--color-text);
+  color: var(--vt-c-text-primary);
   background: var(--color-background);
-  transition:
-    color 0.5s,
-    background-color 0.5s;
+  transition: var(--vt-c-transition);
   line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   font-size: 15px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--vt-c-accent);
+  text-decoration: none;
+  transition: var(--vt-c-transition);
+}
+
+a:hover {
+  background-color: var(--vt-c-accent);
+  color: var(--vt-c-white);
+}
+
+button {
+  background: var(--vt-c-primary);
+  color: var(--vt-c-white);
+  border: none;
+  border-radius: var(--vt-c-border-radius);
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: var(--vt-c-transition);
+}
+
+button:hover {
+  background: var(--vt-c-secondary);
 }

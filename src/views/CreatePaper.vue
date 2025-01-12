@@ -140,6 +140,19 @@
           <div class="preview-header">
             <h2>{{ t('paper.preview') }}</h2>
             <div class="preview-actions">
+              <button class="start-solve-btn" @click="startSolving" v-if="!isGenerating">
+                <div class="btn-content">
+                  <div class="btn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5l-6 4.5z"/>
+                    </svg>
+                  </div>
+                  <div class="btn-text">
+                    <span class="primary-text">{{ t('paper.startSolving') }}</span>
+                    <span class="secondary-text">{{ duration }}分钟</span>
+                  </div>
+                </div>
+              </button>
               <button class="download-btn" @click="downloadPaper">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
@@ -176,8 +189,20 @@
                         <span class="option-content">{{ option }}</span>
                       </div>
                     </div>
-                    <div v-if="question.answer" class="question-answer">
-                      <strong>{{ t('paper.answer') }}:</strong> {{ question.answer }}
+                    <div class="question-footer">
+                      <div class="answer-section" v-if="showAnswers[`choice_${index}`]">
+                        <div class="question-answer">
+                          <strong>{{ t('paper.answer') }}:</strong> {{ question.answer }}
+                        </div>
+                      </div>
+                      <div class="question-actions">
+                        <button class="answer-btn" @click="toggleAnswer('choice', index)">
+                          {{ showAnswers[`choice_${index}`] ? t('problems.hideAnswer') : t('problems.showAnswer') }}
+                        </button>
+                        <button class="solve-btn" @click="solveProblem(question, 'choice', index)">
+                          {{ t('problems.solve') }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -203,9 +228,21 @@
                         <pre>{{ question.example.output }}</pre>
                       </div>
                     </div>
-                    <div v-if="question.answer" class="question-answer">
-                      <strong>{{ t('paper.answer') }}:</strong>
-                      <pre>{{ question.answer }}</pre>
+                    <div class="question-footer">
+                      <div class="answer-section" v-if="showAnswers[`programming_${index}`]">
+                        <div class="question-answer">
+                          <strong>{{ t('paper.answer') }}:</strong>
+                          <pre>{{ question.answer }}</pre>
+                        </div>
+                      </div>
+                      <div class="question-actions">
+                        <button class="answer-btn" @click="toggleAnswer('programming', index)">
+                          {{ showAnswers[`programming_${index}`] ? t('problems.hideAnswer') : t('problems.showAnswer') }}
+                        </button>
+                        <button class="solve-btn" @click="solveProblem(question, 'programming', index)">
+                          {{ t('problems.solve') }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -221,8 +258,20 @@
                       <span class="question-score">({{ question.score }}分)</span>
                     </div>
                     <div class="question-content">{{ question.content }}</div>
-                    <div v-if="question.answer" class="question-answer">
-                      <strong>{{ t('paper.answer') }}:</strong> {{ question.answer }}
+                    <div class="question-footer">
+                      <div class="answer-section" v-if="showAnswers[`completion_${index}`]">
+                        <div class="question-answer">
+                          <strong>{{ t('paper.answer') }}:</strong> {{ question.answer }}
+                        </div>
+                      </div>
+                      <div class="question-actions">
+                        <button class="answer-btn" @click="toggleAnswer('completion', index)">
+                          {{ showAnswers[`completion_${index}`] ? t('problems.hideAnswer') : t('problems.showAnswer') }}
+                        </button>
+                        <button class="solve-btn" @click="solveProblem(question, 'completion', index)">
+                          {{ t('problems.solve') }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -289,6 +338,15 @@ const generatingSteps = [
 let statusInterval
 const paper = ref(null)
 
+// 添加答案显示状态管理
+const showAnswers = ref({})
+
+// 切换答案显示/隐藏
+const toggleAnswer = (type, index) => {
+  const key = `${type}_${index}`
+  showAnswers.value[key] = !showAnswers.value[key]
+}
+
 // 验证配置是否有效
 const isValid = computed(() => {
   const hasQuestions = questionTypes.value.some(type => type.count > 0)
@@ -339,6 +397,32 @@ const handleGeneratePaper = async () => {
 const downloadPaper = () => {
   if (!paper.value) return
   downloadPaperAsWord(paper.value)
+}
+
+const startSolving = () => {
+  if (paper.value) {
+    // 保存试卷数据到 localStorage
+    localStorage.setItem('currentPaper', JSON.stringify({
+      ...paper.value,
+      duration: duration.value,
+      totalScore: totalScore.value
+    }))
+    // 跳转到答题页面
+    router.push('/solve-paper')
+  }
+}
+
+// 添加做题方法
+const solveProblem = (question, type, index) => {
+  // 保存当前题目信息到 localStorage
+  localStorage.setItem('currentQuestion', JSON.stringify({
+    question,
+    type,
+    index,
+    paperTitle: paper.value.title || t('paper.defaultTitle')
+  }))
+  // 跳转到做题页面
+  router.push('/solve-problem')
 }
 </script>
 
@@ -675,6 +759,64 @@ const downloadPaper = () => {
   margin-bottom: 20px;
 }
 
+.preview-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.start-solve-btn {
+  display: flex;
+  align-items: center;
+  padding: 16px 32px;
+  background: #1a73e8;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(26, 115, 232, 0.2);
+}
+
+.start-solve-btn:hover {
+  background: #1557b0;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(26, 115, 232, 0.3);
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: white;
+}
+
+.btn-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: white;
+}
+
+.primary-text {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.secondary-text {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
 .download-btn {
   display: flex;
   align-items: center;
@@ -784,5 +926,88 @@ const downloadPaper = () => {
   100% {
     transform: translateX(400%);
   }
+}
+
+.paper-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.start-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: var(--vt-c-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+  background: var(--vt-c-secondary);
+  transform: translateY(-2px);
+}
+
+.start-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.question-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.solve-btn {
+  padding: 8px 16px;
+  background: var(--vt-c-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.solve-btn:hover {
+  background: var(--vt-c-secondary);
+  transform: translateY(-2px);
+}
+
+.question-footer {
+  margin-top: 16px;
+  border-top: 1px dashed #eee;
+  padding-top: 16px;
+}
+
+.question-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.answer-btn {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--vt-c-primary);
+  border: 1px solid var(--vt-c-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.answer-btn:hover {
+  background: rgba(79, 110, 247, 0.1);
+}
+
+.answer-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f5f7ff;
+  border-radius: 8px;
 }
 </style>

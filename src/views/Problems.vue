@@ -569,16 +569,17 @@ onUnmounted(() => {
 
 .solve-btn {
   padding: 8px 16px;
+  background: var(--vt-c-primary);
+  color: white;
   border: none;
   border-radius: 8px;
-  background: #4F6EF7;
-  color: white;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .solve-btn:hover {
-  background: #3D5CE5;
+  background: var(--vt-c-secondary);
+  transform: translateY(-2px);
 }
 
 .modal-overlay {

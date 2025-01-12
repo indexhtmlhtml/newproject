@@ -4,10 +4,15 @@
       <div class="header-content">
         <h1 class="logo">CodeWorld</h1>
         <div class="user-section">
+          <button class="nav-btn analysis-btn" @click="router.push('/analysis')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="#666" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/>
+            </svg>
+            <span>{{ t('analysis.title') }}</span>
+          </button>
           <button class="nav-btn interview-btn" @click="router.push('/interview')">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/>
-              <path fill="currentColor" d="M12 15c1.66 0 3-1.34 3-3s-1.34-3-3-3s-3 1.34-3 3s1.34 3 3 3zm0-4c.55 0 1 .45 1 1s-.45 1-1 1s-1-.45-1-1s.45-1 1-1z"/>
+              <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
             </svg>
             <span>{{ t('interview.title') }}</span>
             <span class="hot-tag">HOT</span>
@@ -123,6 +128,10 @@
           <p>{{ t(`home.categories.${key}.desc`) }}</p>
         </div>
       </div>
+
+      <section class="analysis-section">
+        <ScoreAnalysis />
+      </section>
     </main>
   </div>
 </template>
@@ -134,6 +143,7 @@ import { messages } from '../locales'
 import AIChatBox from '../components/AIChatBox.vue'
 import { useLanguageStore } from '../stores/language'
 import { useI18n } from 'vue-i18n'
+import ScoreAnalysis from '../components/ScoreAnalysis.vue'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
@@ -841,5 +851,33 @@ const afterLeave = (el) => {
 /* 添加全局语言切换过渡效果 */
 :global(.language-transition) * {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.analysis-section {
+  max-width: 1200px;
+  margin: 32px auto;
+  padding: 0 20px;
+}
+
+/* 添加成绩分析按钮样式 */
+.analysis-btn {
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analysis-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.analysis-btn:hover {
+  color: #4F6EF7;
+  background: rgba(79, 110, 247, 0.1);
+}
+
+.analysis-btn:hover svg path {
+  fill: #4F6EF7;
 }
 </style>

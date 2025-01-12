@@ -79,6 +79,14 @@ export const messages = {
       generatingStep1: 'Analyzing requirements...',
       generatingStep2: 'Creating problem scenarios...',
       generatingStep3: 'Finalizing solutions...',
+      description: 'Problem Description',
+      yourAnswer: 'Your Answer',
+      answerPlaceholder: 'Write your answer here...',
+      submit: 'Submit',
+      showAnswer: 'Show Answer',
+      hideAnswer: 'Hide Answer',
+      referenceAnswer: 'Reference Answer',
+      submitSuccess: 'Successfully submitted!'
     },
     interview: {
       title: 'AI Interview',
@@ -88,6 +96,17 @@ export const messages = {
       end: 'End Interview',
       confirmEnd: 'Are you sure you want to end this interview?',
       error: 'Failed to get response. Please try again.'
+    },
+    analysis: {
+      title: 'Performance Analysis',
+      lastWeek: 'Last Week',
+      lastMonth: 'Last Month',
+      lastYear: 'Last Year',
+      totalProblems: 'Total Problems',
+      averageScore: 'Average Score',
+      successRate: 'Success Rate',
+      progressChart: 'Progress Chart',
+      categoryPerformance: 'Category Performance'
     }
   },
   zh: {
@@ -204,6 +223,14 @@ export const messages = {
       generatingStep1: '正在分析需求...',
       generatingStep2: '正在创建题目场景...',
       generatingStep3: '正在完善解答...',
+      description: '题目描述',
+      yourAnswer: '你的答案',
+      answerPlaceholder: '在此输入你的答案...',
+      submit: '提交',
+      showAnswer: '显示答案',
+      hideAnswer: '隐藏答案',
+      referenceAnswer: '参考答案',
+      submitSuccess: '提交成功！'
     },
     ai: {
       title: 'AI 编程助手',
@@ -235,7 +262,14 @@ export const messages = {
         input: '输入示例',
         output: '输出示例'
       },
-      download: '下载试卷'
+      download: '下载试卷',
+      result: '试卷结果',
+      correct: '正确',
+      wrong: '错误',
+      yourAnswer: '你的答案',
+      correctAnswer: '正确答案',
+      noAnswer: '没有答案',
+      review: '试卷回顾'
     },
     common: {
       confirm: "确认",
@@ -250,6 +284,17 @@ export const messages = {
       end: '结束面试',
       confirmEnd: '确定要结束本次面试吗？',
       error: '获取响应失败，请重试。'
+    },
+    analysis: {
+      title: '成绩分析',
+      lastWeek: '最近一周',
+      lastMonth: '最近一月',
+      lastYear: '最近一年',
+      totalProblems: '总题数',
+      averageScore: '平均分',
+      successRate: '通过率',
+      progressChart: '进度图表',
+      categoryPerformance: '分类表现'
     }
   },
   ja: {
@@ -330,6 +375,14 @@ export const messages = {
       generatingStep1: '要件を分析中...',
       generatingStep2: '問題シナリオを作成中...',
       generatingStep3: '解答を完成中...',
+      description: '問題の説明',
+      yourAnswer: 'あなたの回答',
+      answerPlaceholder: 'ここに回答を入力してください...',
+      submit: '送信',
+      showAnswer: '回答を表示',
+      hideAnswer: '回答を隠す',
+      referenceAnswer: '参考回答',
+      submitSuccess: '送信に成功しました！'
     },
     ai: {
       title: 'AI アシスタント',
@@ -361,7 +414,14 @@ export const messages = {
         input: '输入示例',
         output: '输出示例'
       },
-      download: '下载试卷'
+      download: '下载试卷',
+      result: '试卷结果',
+      correct: '正确',
+      wrong: '错误',
+      yourAnswer: '你的答案',
+      correctAnswer: '正确答案',
+      noAnswer: '没有答案',
+      review: '试卷回顾'
     },
     interview: {
       title: 'AI 模擬面接',
@@ -371,6 +431,17 @@ export const messages = {
       end: '面接を終了',
       confirmEnd: 'この面接を終了してもよろしいですか？',
       error: '応答の取得に失敗しました。もう一度お試しください。'
+    },
+    analysis: {
+      title: '成績分析',
+      lastWeek: '先週',
+      lastMonth: '先月',
+      lastYear: '昨年',
+      totalProblems: '総問題数',
+      averageScore: '平均点',
+      successRate: '成功率',
+      progressChart: '進捗チャート',
+      categoryPerformance: 'カテゴリー別パフォーマンス'
     }
   }
 }

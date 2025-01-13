@@ -3,6 +3,42 @@ import axios from 'axios'
 const API_URL = 'https://api.deepseek.com'
 const API_KEY = 'sk-1bb183d7bd70432e9f0deafbbfe89bb9'
 
+// 添加保存和获取试卷历史的函数
+const HISTORY_KEY = 'paper_history'
+const FREE_HISTORY_LIMIT = 3
+
+export const savePaperToHistory = (paper) => {
+  try {
+    // 获取现有历史
+    let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')
+    
+    // 添加时间戳
+    const paperWithTimestamp = {
+      ...paper,
+      generatedAt: new Date().toISOString()
+    }
+    
+    // 将新试卷添加到开头
+    history.unshift(paperWithTimestamp)
+    
+    // 保存到 localStorage
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
+  } catch (error) {
+    console.error('Failed to save paper to history:', error)
+  }
+}
+
+export const getPaperHistory = (isPremium = false) => {
+  try {
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')
+    // 如果是免费用户，只返回最近3次
+    return isPremium ? history : history.slice(0, FREE_HISTORY_LIMIT)
+  } catch (error) {
+    console.error('Failed to get paper history:', error)
+    return []
+  }
+}
+
 export const generatePaper = async (params) => {
   try {
     let prompt = `请生成一份详细的编程能力测试试卷，要求如下：
@@ -228,6 +264,8 @@ ${Object.entries(params.counts)
           }
         })
 
+        // 验证通过后，保存到历史记录
+        savePaperToHistory(paper)
         return paper
 
       } catch (parseError) {

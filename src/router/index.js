@@ -5,6 +5,7 @@ import Home from '../views/Home.vue'
 import Problems from '../views/Problems.vue'
 import SolveProblem from '../views/SolveProblem.vue'
 import Interview from '../views/Interview.vue'
+import ViewPaper from '@/views/ViewPaper.vue'
 
 const routes = [
   {
@@ -60,6 +61,11 @@ const routes = [
     path: '/paper-result',
     name: 'PaperResult',
     component: () => import('../views/PaperResult.vue')
+  },
+  {
+    path: '/view-paper',
+    name: 'ViewPaper',
+    component: ViewPaper
   }
 ]
 

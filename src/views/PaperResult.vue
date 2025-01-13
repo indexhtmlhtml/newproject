@@ -610,6 +610,55 @@ const escapeHtml = (unsafe) => {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;")
 }
+
+const checkAnswer = (question, userAnswer) => {
+  if (!userAnswer) return false
+  
+  // 处理选择题答案
+  if (question.type === 'choice') {
+    // 将用户答案转换为大写字母
+    const normalizedUserAnswer = typeof userAnswer === 'string' 
+      ? userAnswer.toUpperCase() 
+      : String.fromCharCode(65 + Number(userAnswer))
+    
+    // 将正确答案转换为大写字母
+    const normalizedCorrectAnswer = typeof question.answer === 'string'
+      ? question.answer.toUpperCase()
+      : String.fromCharCode(65 + Number(question.answer))
+      
+    return normalizedUserAnswer === normalizedCorrectAnswer
+  }
+  
+  // 处理判断题答案
+  if (question.type === 'truefalse') {
+    return userAnswer === question.answer
+  }
+  
+  // 处理其他类型题目
+  return userAnswer === question.answer
+}
+
+const calculateScore = () => {
+  let totalScore = 0
+  
+  // 计算选择题分数
+  paper.value.choice?.forEach((q, index) => {
+    if (checkAnswer(q, userAnswers.value.choice?.[index])) {
+      totalScore += q.score
+    }
+  })
+  
+  // 计算判断题分数
+  paper.value.truefalse?.forEach((q, index) => {
+    if (checkAnswer(q, userAnswers.value.truefalse?.[index])) {
+      totalScore += q.score
+    }
+  })
+  
+  // ... 其他题型的分数计算
+  
+  return totalScore
+}
 </script>
 
 <style scoped>

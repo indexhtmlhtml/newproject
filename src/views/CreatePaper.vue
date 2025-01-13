@@ -1,18 +1,40 @@
 <template>
   <div class="create-paper">
-    <header class="header">
-      <div class="header-content">
-        <div class="left-section">
-          <button class="back-btn" @click="router.back()">
+    <PaperHistory />
+    <nav class="nav-bar">
+      <div class="nav-content">
+        <div class="nav-left">
+          <button class="nav-back" @click="router.back()">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
               <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
             </svg>
-            {{ t('common.back') }}
           </button>
-          <h1 class="page-title">{{ t('paper.title') }}</h1>
+          <div class="nav-divider"></div>
+          <h1 class="nav-title">生成试卷</h1>
+        </div>
+        <div class="nav-right">
+          <div class="nav-actions">
+            <button class="nav-btn help-btn" title="帮助">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41c0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+              </svg>
+            </button>
+            <div class="nav-divider"></div>
+            <div class="user-info">
+              <div class="user-avatar">
+                {{ username.charAt(0).toUpperCase() }}
+              </div>
+              <span class="username">{{ username }}</span>
+              <button class="logout-btn" @click="handleLogout" title="退出登录">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </header>
+    </nav>
 
     <main class="main-content">
       <div class="paper-container">
@@ -413,16 +435,34 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '../stores/language'
 import { useI18n } from 'vue-i18n'
 import { generatePaper as generatePaperAPI } from '../services/paper'
 import { downloadPaperAsWord } from '../utils/download'
+import PaperHistory from '@/components/PaperHistory.vue'
+import { eventBus } from '@/utils/eventBus'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
 const { t } = useI18n()
+
+const username = ref('')
+
+onMounted(() => {
+  // 从 localStorage 获取用户名
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  username.value = user.username || '未登录'
+})
+
+const handleLogout = () => {
+  if (confirm('确定要退出登录吗？')) {
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    router.push('/login')
+  }
+}
 
 // 题型配置
 const questionTypes = ref([
@@ -536,6 +576,8 @@ const handleGeneratePaper = async () => {
       totalScore: totalScore.value,
       difficulty: selectedDifficulty.value
     }
+    // 触发试卷生成事件
+    eventBus.emit('paperGenerated')
   } catch (error) {
     console.error('Failed to generate paper:', error)
     alert(t('paper.generateError'))
@@ -612,43 +654,179 @@ const directives = {
   background: #f5f7ff;
 }
 
-.header {
+.nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 16px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-.header-content {
+.nav-content {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
-.left-section {
+.nav-left {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.back-btn {
+.nav-back {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: none;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   background: none;
+  border: none;
   color: #666;
   cursor: pointer;
   transition: all 0.3s ease;
+  border-radius: 50%;
 }
 
-.back-btn:hover {
+.nav-back:hover {
   color: #4F6EF7;
+  background: rgba(79, 110, 247, 0.1);
+}
+
+.nav-divider {
+  width: 1px;
+  height: 24px;
+  background: #eee;
+}
+
+.nav-title {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+}
+
+.nav-btn:hover {
+  color: #4F6EF7;
+  background: rgba(79, 110, 247, 0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px;
+  border-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.user-info:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: #4F6EF7;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.username {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  opacity: 0.7;
+}
+
+.logout-btn:hover {
+  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.1);
+  opacity: 1;
+}
+
+[title] {
+  position: relative;
+}
+
+[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1000;
 }
 
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  margin-top: 60px;
   padding: 24px;
 }
 
@@ -1346,5 +1524,9 @@ const directives = {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.history-section {
+  margin-bottom: 30px;
 }
 </style>

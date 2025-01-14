@@ -7,156 +7,13 @@ const API_KEY = 'sk-1bb183d7bd70432e9f0deafbbfe89bb9'
 const HISTORY_KEY = 'paper_history'
 const FREE_HISTORY_LIMIT = 3
 
-export const savePaperToHistory = (paper) => {
-  try {
-    // 获取现有历史
-    let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')
-    
-    // 添加时间戳
-    const paperWithTimestamp = {
-      ...paper,
-      generatedAt: new Date().toISOString()
-    }
-    
-    // 将新试卷添加到开头
-    history.unshift(paperWithTimestamp)
-    
-    // 保存到 localStorage
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
-  } catch (error) {
-    console.error('Failed to save paper to history:', error)
-  }
-}
-
-export const getPaperHistory = (isPremium = false) => {
-  try {
-    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')
-    // 如果是免费用户，只返回最近3次
-    return isPremium ? history : history.slice(0, FREE_HISTORY_LIMIT)
-  } catch (error) {
-    console.error('Failed to get paper history:', error)
-    return []
-  }
-}
-
-export const generatePaper = async (params) => {
-  try {
-    let prompt = `请生成一份详细的编程能力测试试卷，要求如下：
-
-题型要求：
-${Object.entries(params.counts)
-  .filter(([_, count]) => count > 0)
-  .map(([type, count]) => {
-    const types = {
-      choice: '选择题',
-      programming: '编程题',
-      completion: '填空题',
-      truefalse: '判断题',
-      shortanswer: '简答题',
-      matching: '匹配题'
-    }
-    return `- ${types[type]}: ${count}道`
-  })
-  .join('\n')}
-
-基本要求：
-1. 总分：${params.totalScore}分
-2. 时长：${params.duration}分钟
-3. 整体难度：${params.difficulty}
-4. 所有题目必须与编程相关，且要有详细的上下文和背景说明
-5. 分值根据题目难度和复杂度合理分配
-6. 避免知识点重复，每道题考察不同的知识点
-7. 相似题型不要重复出现
-
-题干设计要求：
-1. 题干复杂度要有层次：
-   - 30%基础题目：简短清晰的题干，直接考察核心知识点
-   - 40%中等题目：包含一定的场景描述和条件设定
-   - 30%复杂题目：完整的业务场景、系统设计或多个知识点结合
-
-2. 选择题要求：
-   - 包含实际工作场景，如：
-     * "在一个高并发的微服务系统中，服务A需要调用服务B，出现了循环依赖问题..."
-     * "某电商平台的订单系统面临性能瓶颈，分析以下代码的时间复杂度..."
-   - 包含代码分析题，如：
-     * 给出一段包含多线程或设计模式的代码，分析其潜在问题
-     * 展示一个数据库查询优化场景，分析不同方案的性能影响
-   - 答案选项要包含详细的技术原理解释
-
-3. 编程题要求：
-   - 结合实际业务场景，如：
-     * "设计一个订单分库分表的数据迁移方案，要求不影响线上业务..."
-     * "实现一个高性能的缓存淘汰算法，要求支持并发访问..."
-   - 包含系统设计类题目：
-     * 完整的技术架构设计
-     * 性能指标要求
-     * 可扩展性考虑
-     * 异常处理方案
-   - 代码实现题目要有完整的约束条件和边界情况
-
-4. 填空题要求：
-   - 关键代码实现，如：
-     * 分布式锁的核心实现代码
-     * 设计模式的关键结构
-     * 性能优化的核心逻辑
-   - 包含实际工程实践中的代码片段
-
-5. 判断题要求：
-   - 涉及实际工程中的常见误区
-   - 包含性能优化相关的最佳实践
-   - 架构设计的权衡取舍
-   - 新技术应用的场景判断
-
-6. 简答题要求：
-   - 系统设计题，如：
-     * "设计一个支持百万用户同时在线的聊天系统..."
-     * "设计一个支持秒杀的订单系统，要求考虑并发、性能、可靠性..."
-   - 问题诊断题，如：
-     * "生产环境出现了内存泄漏，给出排查步骤和解决方案..."
-     * "数据库查询突然变慢，如何定位和优化..."
-   - 技术选型题，如：
-     * "比较不同消息队列的优劣，并说明在不同场景下的选择依据..."
-
-7. 匹配题要求：
-   - 技术场景与解决方案匹配
-   - 性能问题与优化方案匹配
-   - 架构模式与应用场景匹配
-   - 确保选项之间有明确的区分度
-
-每种题型都要求：
-1. 70%题目要基于实际工程场景
-2. 包含完整的业务背景描述
-3. 明确的技术约束条件
-4. 详细的性能和可靠性要求
-5. 完整的测试用例和边界条件
-6. 答案要包含详细的解题思路和技术原理
-
-知识点分布要求：
-1. 编程基础知识（数据类型、控制结构等）
-2. 算法与数据结构（不同类型的算法和数据结构）
-3. 面向对象编程概念
-4. 设计模式与架构
-5. 数据库与存储
-6. 网络编程
-7. 性能优化
-8. 安全性考虑
-9. 工程实践
-10. 新技术应用
-
-注意事项：
-1. 题目描述要完整，包含必要的上下文信息
-2. 涉及代码的题目要给出完整的代码片段
-3. 系统设计类题目要考虑实际的技术约束
-4. 性能相关的题目要给出具体的性能指标
-5. 确保题目难度分布合理，简单题和复杂题都要有
-
-请严格按照以下JSON格式返回（不要添加任何其他内容）：
-
+// 添加 DEEPSEEK_PROMPT 常量
+const DEEPSEEK_PROMPT = `你是一个专业的编程考试出题专家。请按照以下格式生成试题：
 {
-  "title": "编程能力测试",
-  "duration": ${params.duration},
-  "totalScore": ${params.totalScore},
-  "difficulty": "${params.difficulty}",
+  "title": "试卷标题",
+  "difficulty": "难度",
+  "duration": 时长(分钟),
+  "totalScore": 总分值,
   "choice": [
     {
       "content": "题目内容",
@@ -166,121 +23,222 @@ ${Object.entries(params.counts)
         "C": "选项C",
         "D": "选项D"
       },
-      "answer": "A",
-      "score": 5
+      "answer": "正确选项字母",
+      "score": 分值
     }
   ],
   "programming": [
     {
       "content": "题目描述",
       "example": {
-        "input": "输入示例",
-        "output": "输出示例"
+        "input": "示例输入",
+        "output": "示例输出"
       },
-      "answer": "代码答案",
-      "score": 10
+      "answer": "参考代码",
+      "score": 分值
     }
   ],
   "completion": [
     {
-      "content": "题目内容___空格处___",
-      "answer": "答案",
-      "score": 5
+      "content": "题目内容，空格用___表示",
+      "answer": "正确答案",
+      "score": 分值
     }
   ],
   "truefalse": [
     {
-      "content": "判断题内容",
-      "answer": true,
-      "score": 5
+      "content": "判断题目内容",
+      "answer": true或false,
+      "score": 分值
     }
   ],
   "shortanswer": [
     {
-      "content": "简答题内容",
-      "answer": "答案要点",
-      "score": 10
+      "content": "题目内容",
+      "answer": "参考答案要点",
+      "score": 分值
     }
   ],
   "matching": [
     {
-      "content": "匹配题说明",
-      "leftItems": ["左项1", "左项2"],
-      "rightItems": ["右项1", "右项2"],
-      "answer": [[0,1], [1,0]],
-      "score": 10
+      "content": "题目说明",
+      "leftItems": ["左边项目1", "左边项目2"],
+      "rightItems": ["右边项目1", "右边项目2"],
+      "answer": [
+        [0, 1],  // 表示左边第1项匹配右边第2项
+        [1, 0]   // 表示左边第2项匹配右边第1项
+      ],
+      "score": 分值
     }
   ]
 }`
 
-    try {
-      const response = await axios.post(`${API_URL}/v1/chat/completions`, {
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "你是一个专业的编程考试出题专家。请严格按照给定的JSON格式生成试卷，不要添加任何额外的文本或标记。确保生成的是合法的JSON字符串。"
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 4096,
-        top_p: 0.95
-      }, {
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 120000
-      })
+// 保存试卷到历史记录
+export const savePaperToHistory = (paper) => {
+  try {
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')
+    
+    // 添加生成时间
+    const paperWithTimestamp = {
+      ...paper,
+      generatedAt: new Date().toISOString()
+    }
+    
+    // 限制免费用户的历史记录数量
+    if (history.length >= FREE_HISTORY_LIMIT) {
+      history.pop() // 移除最旧的记录
+    }
+    
+    // 将新试卷添加到历史记录开头
+    history.unshift(paperWithTimestamp)
+    
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
+  } catch (error) {
+    console.error('Error saving paper to history:', error)
+  }
+}
 
-      const result = response.data.choices[0].message.content
-      console.log('Raw API response:', result)
+// 获取历史记录
+export const getPaperHistory = () => {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')
+  } catch (error) {
+    console.error('Error getting paper history:', error)
+    return []
+  }
+}
 
-      // 尝试直接解析返回的内容
-      try {
-        const paper = JSON.parse(result)
-        
-        // 验证基本结构
-        if (!paper || typeof paper !== 'object') {
-          throw new Error('Invalid paper structure')
-        }
+// 清除历史记录
+export const clearPaperHistory = () => {
+  localStorage.setItem(HISTORY_KEY, '[]')
+}
 
-        // 验证必需字段
-        const requiredFields = ['title', 'duration', 'totalScore', 'difficulty']
-        for (const field of requiredFields) {
-          if (!(field in paper)) {
-            throw new Error(`Missing required field: ${field}`)
-          }
-        }
-
-        // 验证题型数量
-        Object.entries(params.counts).forEach(([type, count]) => {
-          if (count > 0 && (!paper[type] || !Array.isArray(paper[type]) || paper[type].length !== count)) {
-            throw new Error(`Invalid ${type} questions count: expected ${count}, got ${paper[type]?.length || 0}`)
-          }
-        })
-
-        // 验证通过后，保存到历史记录
-        savePaperToHistory(paper)
-        return paper
-
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError)
-        console.error('Raw content:', result)
-        throw new Error('Failed to parse paper JSON')
-      }
-
-    } catch (axiosError) {
-      console.error('API call failed:', axiosError.response?.data || axiosError.message)
-      throw new Error('Failed to generate paper')
+export const generatePaper = async (params) => {
+  try {
+    // 设置默认的题目数量
+    const defaultQuestionCounts = {
+      choice: 3,
+      programming: 1,
+      completion: 0,
+      truefalse: 0,
+      shortanswer: 0,
+      matching: 0
+    }
+    
+    // 使用传入的 counts 参数，如果没有则使用默认值
+    const questionCounts = {
+      choice: params.counts?.choice || defaultQuestionCounts.choice,
+      programming: params.counts?.programming || defaultQuestionCounts.programming,
+      completion: params.counts?.completion || defaultQuestionCounts.completion,
+      truefalse: params.counts?.truefalse || defaultQuestionCounts.truefalse,
+      shortanswer: params.counts?.shortanswer || defaultQuestionCounts.shortanswer,
+      matching: params.counts?.matching || defaultQuestionCounts.matching
     }
 
+    let prompt = `请生成一份详细的编程能力测试试卷，要求如下：
+
+    领域要求：${Array.isArray(params.domains) ? params.domains.map(domain => {
+      const domainNames = {
+        frontend: '前端开发',
+        backend: '后端开发',
+        database: '数据库',
+        algorithm: '算法'
+      }
+      return domainNames[domain] || domain
+    }).join('、') : '综合'}
+
+    难度要求：${params.difficulty || '中等'}
+    时长要求：${params.duration || 60}分钟
+    总分要求：${params.totalScore || 100}分
+
+    题型要求（必须严格按照以下数量生成）：
+    {
+      "choice": ${questionCounts.choice},
+      "programming": ${questionCounts.programming},
+      "completion": ${questionCounts.completion},
+      "truefalse": ${questionCounts.truefalse},
+      "shortanswer": ${questionCounts.shortanswer},
+      "matching": ${questionCounts.matching}
+    }
+
+    请注意：
+    1. 必须返回完整的 JSON 格式数据
+    2. 每种题型必须严格按照指定数量生成
+    3. 即使数量为 0 的题型也必须返回空数组
+    4. 所有题目必须包含完整的题目内容、答案和分值
+    5. 总分值必须符合要求
+    6. 难度必须符合要求
+    7. 题目内容必须与指定领域相关
+
+    返回格式示例：
+    {
+      "title": "试卷标题",
+      "difficulty": "${params.difficulty}",
+      "duration": ${params.duration},
+      "totalScore": ${params.totalScore},
+      "choice": [], // 长度必须为 ${questionCounts.choice}
+      "programming": [], // 长度必须为 ${questionCounts.programming}
+      "completion": [], // 长度必须为 ${questionCounts.completion}
+      "truefalse": [], // 长度必须为 ${questionCounts.truefalse}
+      "shortanswer": [], // 长度必须为 ${questionCounts.shortanswer}
+      "matching": [] // 长度必须为 ${questionCounts.matching}
+    }`
+
+    const response = await axios.post(`${API_URL}/v1/chat/completions`, {
+      model: 'deepseek-chat',
+      messages: [
+        {
+          role: 'system',
+          content: DEEPSEEK_PROMPT
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000
+    }, {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const result = response.data.choices[0].message.content
+    
+    // 从响应中提取并解析 JSON
+    const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/) || result.match(/{[\s\S]*}/)
+    
+    if (!jsonMatch) {
+      throw new Error('Invalid response format')
+    }
+    
+    const paper = JSON.parse(jsonMatch[1] || jsonMatch[0])
+    
+    // 验证必要字段
+    if (!paper.title || !paper.difficulty || !paper.duration || !paper.totalScore) {
+      throw new Error('Missing required fields in paper')
+    }
+
+    // 验证题目数量
+    const validateQuestionCount = (type) => {
+      const required = questionCounts[type]
+      const actual = paper[type]?.length || 0
+      if (required !== actual) {
+        throw new Error(`${type} question count mismatch: required ${required}, got ${actual}`)
+      }
+    }
+
+    // 验证所有题型数量
+    ['choice', 'programming', 'completion', 'truefalse', 'shortanswer', 'matching'].forEach(validateQuestionCount)
+
+    // 保存到历史记录
+    savePaperToHistory(paper)
+
+    return paper
   } catch (error) {
-    console.error('Paper generation error:', error)
+    console.error('Error generating paper:', error)
     throw error
   }
-} 
+}

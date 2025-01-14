@@ -35,8 +35,8 @@
         </div>
 
         <!-- 选择题部分 -->
-        <section v-if="paper.choice?.length" class="question-section">
-          <h3>一、选择题</h3>
+        <div v-if="paper?.choice?.length" class="question-section">
+          <h3>{{ t('paper.questionTypes.choice') }}</h3>
           <div v-for="(question, index) in paper.choice" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
@@ -44,20 +44,22 @@
             </div>
             <div class="question-content">{{ question.content }}</div>
             <div class="options-list">
-              <div v-for="(option, idx) in question.options" :key="idx" class="option-item">
-                <span class="option-label">{{ String.fromCharCode(65 + idx) }}.</span>
-                <span class="option-content">{{ option }}</span>
+              <div v-for="(optionValue, optionKey) in question.options" 
+                     :key="optionKey" 
+                     class="option-item">
+                <span class="option-label">{{ optionKey }}</span>
+                <span>{{ optionValue }}</span>
               </div>
             </div>
             <div v-if="showAnswers" class="answer">
               <strong>答案：</strong>{{ question.answer }}
             </div>
           </div>
-        </section>
+        </div>
 
         <!-- 编程题部分 -->
-        <section v-if="paper.programming?.length" class="question-section">
-          <h3>二、编程题</h3>
+        <div v-if="paper?.programming?.length" class="question-section">
+          <h3>{{ t('paper.questionTypes.programming') }}</h3>
           <div v-for="(question, index) in paper.programming" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
@@ -69,11 +71,11 @@
               <pre><code>{{ question.answer }}</code></pre>
             </div>
           </div>
-        </section>
+        </div>
 
         <!-- 填空题部分 -->
-        <section v-if="paper.completion?.length" class="question-section">
-          <h3>三、填空题</h3>
+        <div v-if="paper?.completion?.length" class="question-section">
+          <h3>{{ t('paper.questionTypes.completion') }}</h3>
           <div v-for="(question, index) in paper.completion" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
@@ -84,26 +86,38 @@
               <strong>答案：</strong>{{ question.answer }}
             </div>
           </div>
-        </section>
+        </div>
 
         <!-- 判断题部分 -->
-        <section v-if="paper.truefalse?.length" class="question-section">
-          <h3>四、判断题</h3>
+        <div v-if="paper?.truefalse?.length" class="question-section">
+          <h3>{{ t('paper.questionTypes.truefalse') }}</h3>
           <div v-for="(question, index) in paper.truefalse" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
               <span class="question-score">({{ question.score }}分)</span>
             </div>
             <div class="question-content">{{ question.content }}</div>
+            <div class="options-list">
+              <div class="option-item">
+                <label>
+                  <span>{{ t('paper.true') }}</span>
+                </label>
+              </div>
+              <div class="option-item">
+                <label>
+                  <span>{{ t('paper.false') }}</span>
+                </label>
+              </div>
+            </div>
             <div v-if="showAnswers" class="answer">
-              <strong>答案：</strong>{{ question.answer ? '正确' : '错误' }}
+              <strong>答案：</strong>{{ question.answer ? t('paper.true') : t('paper.false') }}
             </div>
           </div>
-        </section>
+        </div>
 
         <!-- 简答题部分 -->
-        <section v-if="paper.shortanswer?.length" class="question-section">
-          <h3>五、简答题</h3>
+        <div v-if="paper?.shortanswer?.length" class="question-section">
+          <h3>{{ t('paper.questionTypes.shortanswer') }}</h3>
           <div v-for="(question, index) in paper.shortanswer" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
@@ -111,15 +125,15 @@
             </div>
             <div class="question-content">{{ question.content }}</div>
             <div v-if="showAnswers" class="answer">
-              <strong>参考答案：</strong>
+              <strong>答案：</strong>
               <div class="answer-content">{{ question.answer }}</div>
             </div>
           </div>
-        </section>
+        </div>
 
         <!-- 匹配题部分 -->
-        <section v-if="paper.matching?.length" class="question-section">
-          <h3>六、匹配题</h3>
+        <div v-if="paper?.matching?.length" class="question-section">
+          <h3>{{ t('paper.questionTypes.matching') }}</h3>
           <div v-for="(question, index) in paper.matching" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
@@ -127,27 +141,27 @@
             </div>
             <div class="question-content">{{ question.content }}</div>
             <div class="matching-items">
-              <div class="matching-column">
-                <div v-for="(item, itemIndex) in question.leftItems" :key="itemIndex" class="matching-item">
-                  {{ itemIndex + 1 }}. {{ item }}
+              <div class="left-items">
+                <div v-for="(item, i) in question.leftItems" :key="i" class="matching-item">
+                  {{ i + 1 }}. {{ item }}
                 </div>
               </div>
-              <div class="matching-column">
-                <div v-for="(item, itemIndex) in question.rightItems" :key="itemIndex" class="matching-item">
-                  {{ String.fromCharCode(65 + itemIndex) }}. {{ item }}
+              <div class="right-items">
+                <div v-for="(item, i) in question.rightItems" :key="i" class="matching-item">
+                  {{ String.fromCharCode(65 + i) }}. {{ item }}
                 </div>
               </div>
             </div>
             <div v-if="showAnswers" class="answer">
               <strong>答案：</strong>
               <div class="answer-pairs">
-                <div v-for="[left, right] in question.answer" :key="left" class="answer-pair">
-                  {{ left + 1 }} → {{ String.fromCharCode(65 + right) }}
+                <div v-for="(pair, i) in question.answer" :key="i" class="answer-pair">
+                  {{ pair[0] + 1 }} → {{ String.fromCharCode(65 + pair[1]) }}
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
       </div>
       <div v-else class="no-paper">
         未找到试卷信息
@@ -165,16 +179,30 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { downloadPaperAsWord } from '@/utils/download'
+import { getPaperHistory } from '@/services/paper'
 
 const router = useRouter()
+const { t } = useI18n()
 const paper = ref(null)
 const showAnswers = ref(false)
 
 onMounted(() => {
-  const savedPaper = localStorage.getItem('currentPaper')
-  if (savedPaper) {
-    paper.value = JSON.parse(savedPaper)
+  // 从 URL 获取试卷 ID
+  const urlParams = new URLSearchParams(window.location.search)
+  const paperId = urlParams.get('id')
+  
+  if (paperId) {
+    // 从历史记录中获取对应的试卷
+    const history = getPaperHistory()
+    paper.value = history[paperId]
+  } else {
+    // 尝试从 localStorage 获取最新生成的试卷
+    const paperData = localStorage.getItem('currentPaper')
+    if (paperData) {
+      paper.value = JSON.parse(paperData)
+    }
   }
 })
 
@@ -187,13 +215,23 @@ const toggleAnswers = () => {
 }
 
 const startSolving = () => {
-  router.push('/solve-paper')
+  if (paper.value) {
+    // 清除之前的答案记录
+    localStorage.removeItem('paperAnswers')
+    // 清除之前的开始时间记录
+    localStorage.removeItem('examStartTime')
+    // 清除之前的答题状态
+    localStorage.removeItem('answerState')
+    
+    // 保存当前试卷
+    localStorage.setItem('currentPaper', JSON.stringify(paper.value))
+    router.push('/solve-paper')
+  }
 }
 
 const downloadPaper = () => {
-  if (paper.value) {
-    downloadPaperAsWord(paper.value)
-  }
+  if (!paper.value) return
+  downloadPaperAsWord(paper.value)
 }
 </script>
 
@@ -330,12 +368,27 @@ const downloadPaper = () => {
 
 .option-item {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.option-label {
-  font-weight: bold;
-  min-width: 24px;
+.option-item:hover {
+  background: #f5f7ff;
+}
+
+.option-item.selected {
+  background: #e8f0fe;
+  border: 1px solid #4F6EF7;
+}
+
+.option-item input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4F6EF7;
 }
 
 .answer {
@@ -389,40 +442,20 @@ const downloadPaper = () => {
 }
 
 .matching-items {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin: 16px 0;
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
 }
 
-.matching-column {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.left-items,
+.right-items {
+  flex: 1;
 }
 
 .matching-item {
-  padding: 12px;
-  background: #f5f7ff;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.matching-item:hover {
-  background: #e8f0fe;
-}
-
-.answer-pairs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.answer-pair {
-  padding: 4px 12px;
-  background: #e8f0fe;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  background: #f5f5f5;
   border-radius: 4px;
-  font-weight: 500;
 }
 </style> 

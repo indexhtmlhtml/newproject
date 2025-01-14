@@ -70,6 +70,7 @@ const DEEPSEEK_PROMPT = `你是一个专业的编程考试出题专家。请按�
 }
 
 请确保：
+
 1. 所有题目难度符合要求
 2. 答案明确且准确
 3. 分值合理分配
@@ -128,6 +129,7 @@ export const generateProblems = async (params) => {
           ${!params.difficulty || params.difficulty === 'random' ? 
             '请确保生成的题目难度分布均匀，包含简单、中等和困难题目。' : ''}
 
+        
           每道题目必须包含：
           1. 标题
           2. 详细描述

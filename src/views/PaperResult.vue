@@ -28,7 +28,7 @@
             </svg>
             <div class="score-text">
               <span class="current-score">{{ totalScore }}</span>
-              <span class="total-score">/{{ Object.values(maxScores).reduce((a, b) => a + b, 0) }}</span>
+              <span class="total-score">/{{ totalMaxScore }}</span>
             </div>
           </div>
           <div class="score-label">总分</div>
@@ -36,6 +36,10 @@
 
         <!-- 统计数据卡片 -->
         <div class="stats-cards">
+          <div class="stat-card">
+            <div class="stat-value">{{ totalScore }}</div>
+            <div class="stat-label">总分</div>
+          </div>
           <div class="stat-card">
             <div class="stat-value">{{ correctCount }}</div>
             <div class="stat-label">答对题数</div>
@@ -49,7 +53,7 @@
             <div class="stat-label">正确率</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">{{ timeUsed }}</div>
+            <div class="stat-value">{{ formattedTimeUsed }}</div>
             <div class="stat-label">用时</div>
           </div>
         </div>
@@ -150,15 +154,14 @@
             </div>
             <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
             <div class="answer-comparison">
-              <div class="answer-item">
-                <div class="answer-label">{{ t('paper.yourAnswer') }}</div>
-                <div :class="['answer-value', answers.choice[index] === question.answer ? 'correct' : 'wrong']">
-                  {{ answers.choice[index] || t('paper.noAnswer') }}
-                </div>
+              <div class="user-answer" :class="{ correct: isChoiceCorrect(index) }">
+                <strong>{{ t('paper.yourAnswer') }}：</strong>
+                <span v-if="answers.choice[index]">{{ answers.choice[index] }}</span>
+                <span v-else>{{ t('paper.noAnswer') }}</span>
               </div>
-              <div class="answer-item">
-                <div class="answer-label">{{ t('paper.correctAnswer') }}</div>
-                <div class="answer-value correct">{{ question.answer }}</div>
+              <div class="correct-answer">
+                <strong>{{ t('paper.correctAnswer') }}：</strong>
+                {{ question.answer }}
               </div>
             </div>
           </div>
@@ -342,6 +345,7 @@ const { t } = useI18n()
 
 const paper = ref(null)
 const answers = ref(null)
+const timeUsed = ref(0)
 const scores = ref({
   choice: 0,
   programming: 0,
@@ -359,26 +363,95 @@ const maxScores = ref({
   matching: 0
 })
 
-// 修改总分计算
+// 修改总分上限计算
+const totalMaxScore = computed(() => {
+  return Object.entries(paper.value || {}).reduce((total, [type, questions]) => {
+    if (!Array.isArray(questions)) return total
+    
+    switch (type) {
+      case 'choice':
+      case 'completion':
+      case 'truefalse':
+        // 累加每道题的分数
+        return total + questions.reduce((sum, q) => sum + (parseInt(q.score) || 0), 0)
+      case 'programming':
+        // 编程题固定10分
+        return total + (questions.length > 0 ? 10 : 0)
+      case 'shortanswer':
+        // 简答题取第一道题的分数
+        return total + (questions[0]?.score ? parseInt(questions[0].score) : 0)
+      case 'matching':
+        // 匹配题固定10分
+        return total + (questions.length > 0 ? 10 : 0)
+      default:
+        return total
+    }
+  }, 0)
+})
+
+// 修改总分显示计算
 const totalScore = computed(() => {
-  return Object.values(scores.value).reduce((sum, score) => sum + score, 0)
+  let total = 0
+  Object.entries(scores.value).forEach(([type, score]) => {
+    if (paper.value?.[type]?.length > 0) {
+      total += parseInt(score) || 0
+    }
+  })
+  return total
 })
 
 // 修改总分百分比计算
 const scorePercentage = computed(() => {
-  const maxTotal = Object.values(maxScores.value).reduce((sum, score) => sum + score, 0)
-  return maxTotal > 0 ? (totalScore.value / maxTotal * 100).toFixed(0) : 0
+  let maxTotal = 0
+  
+  // 计算所有题型的总分
+  Object.entries(maxScores.value).forEach(([type, score]) => {
+    if (paper.value?.[type]?.length > 0) {
+      maxTotal += score || 0
+    }
+  })
+  
+  if (maxTotal === 0) return 0
+  return Math.round((totalScore.value / maxTotal) * 100) || 0
+})
+
+// 修改正确率计算
+const accuracy = computed(() => {
+  const total = correctCount.value + wrongCount.value
+  if (total === 0) return 0
+  return Math.round((correctCount.value / total) * 100) || 0
+})
+
+// 修改用时显示
+const formattedTimeUsed = computed(() => {
+  if (!timeUsed.value || isNaN(timeUsed.value)) return '未记录'
+  
+  const minutes = Math.floor(timeUsed.value / 60)
+  const seconds = timeUsed.value % 60
+  
+  if (minutes === 0) {
+    return `${seconds}秒`
+  }
+  return `${minutes}分${seconds}秒`
 })
 
 // 修改 getCorrectCount 函数
 const getCorrectCount = (type) => {
   if (!paper.value?.[type] || !answers.value?.[type]) return 0
-  return paper.value[type].filter((q, i) => {
-    if (type === 'matching') {
-      return JSON.stringify(answers.value[type][i]) === JSON.stringify(q.answer)
-    }
-    return answers.value[type][i] === q.answer
-  }).length
+  
+  try {
+    return paper.value[type].filter((q, i) => {
+      if (!q || !answers.value[type][i]) return false
+      
+      if (type === 'matching') {
+        return JSON.stringify(answers.value[type][i]) === JSON.stringify(q.answer)
+      }
+      return answers.value[type][i] === q.answer
+    }).length
+  } catch (error) {
+    console.error(`Error counting correct answers for ${type}:`, error)
+    return 0
+  }
 }
 
 // 修改 correctCount 计算属性
@@ -403,34 +476,6 @@ const wrongCount = computed(() => {
     count += getWrongCount(type)
   })
   return count
-})
-
-const accuracy = computed(() => {
-  const total = correctCount.value + wrongCount.value
-  return total > 0 ? Math.round((correctCount.value / total) * 100) : 0
-})
-
-// 修改用时计算逻辑
-const timeUsed = computed(() => {
-  const startTime = localStorage.getItem('examStartTime')
-  const endTime = localStorage.getItem('examEndTime')
-  if (!startTime || !endTime) return '未记录'
-  
-  const duration = Math.floor((new Date(endTime) - new Date(startTime)) / 1000) // 秒
-  const hours = Math.floor(duration / 3600)
-  const minutes = Math.floor((duration % 3600) / 60)
-  const seconds = duration % 60
-  
-  let timeString = ''
-  if (hours > 0) {
-    timeString += `${hours}小时`
-  }
-  if (minutes > 0 || hours > 0) {
-    timeString += `${minutes}分`
-  }
-  timeString += `${seconds}秒`
-  
-  return timeString
 })
 
 // 添加题型分析数据
@@ -465,27 +510,48 @@ const scoreLevel = computed(() => {
 })
 
 onMounted(() => {
-  // 从 localStorage 获取试卷和答案数据
-  const paperData = localStorage.getItem('currentPaper')
-  const answersData = localStorage.getItem('paperAnswers')
+  // 获取答案数据
+  const savedData = localStorage.getItem('paperAnswers')
+  const savedPaper = localStorage.getItem('currentPaper')
   
-  if (paperData && answersData) {
-    paper.value = JSON.parse(paperData)
-    answers.value = JSON.parse(answersData)
-    calculateScores()
-  } else {
-    router.push('/home')
+  let parsedAnswers = null
+  let parsedPaper = null
+  
+  try {
+    if (savedPaper) {
+      parsedPaper = JSON.parse(savedPaper)
+      paper.value = parsedPaper
+    }
+    
+    if (savedData) {
+      const data = JSON.parse(savedData)
+      if (data.answers) {
+        parsedAnswers = data.answers
+        timeUsed.value = data.usedTime || 0
+      } else {
+        parsedAnswers = data
+      }
+      answers.value = parsedAnswers
+    }
+    
+    // 只有当试卷和答案都存在时才计算分数
+    if (parsedPaper && parsedAnswers) {
+      calculateScores()
+    }
+  } catch (error) {
+    console.error('Error parsing data:', error)
   }
-  
-  // 清除时间记录，避免影响下次答题
-  const clearTimingData = () => {
-    localStorage.removeItem('examStartTime')
-    localStorage.removeItem('examEndTime')
-  }
-  
-  // 组件卸载时清除时间记录
-  onUnmounted(clearTimingData)
 })
+
+// 修改格式化时间的函数
+const formatTime = (seconds) => {
+  if (typeof seconds !== 'number' || isNaN(seconds)) {
+    return '0分0秒'
+  }
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}分${remainingSeconds}秒`
+}
 
 // 修改计算分数的函数
 const calculateScores = () => {
@@ -495,32 +561,42 @@ const calculateScores = () => {
     maxScores.value[type] = 0
   })
   
+  // 如果没有试卷或答案数据，直接返回
+  if (!paper.value || !answers.value) return
+  
   // 遍历所有题型计算分数
-  Object.entries(paper.value || {}).forEach(([type, questions]) => {
+  Object.entries(paper.value).forEach(([type, questions]) => {
     if (!Array.isArray(questions)) return
 
     questions.forEach((q, i) => {
-      maxScores.value[type] += q.score || 0
+      // 确保分数是有效数字
+      const questionScore = parseInt(q.score) || 0
 
       switch (type) {
         case 'choice':
         case 'completion':
         case 'truefalse':
-          if (answers.value[type][i] === q.answer) {
-            scores.value[type] += q.score || 0
+          maxScores.value[type] += questionScore
+          if (answers.value[type] && answers.value[type][i] === q.answer) {
+            scores.value[type] += questionScore
           }
           break
         case 'programming':
-          if (answers.value[type][i]?.trim() === q.answer?.trim()) {
-            scores.value[type] += q.score || 0
+          // 编程题每道题10分
+          maxScores.value[type] = 10
+          if (answers.value[type] && answers.value[type][i]?.trim() === q.answer?.trim()) {
+            scores.value[type] = 10
           }
           break
         case 'shortanswer':
-          // 简答题需要人工评分，这里只计算总分
+          // 简答题只计算一次总分
+          maxScores.value[type] = questionScore
           break
         case 'matching':
+          // 匹配题每道题10分
+          maxScores.value[type] = 10
           if (isMatchingCorrect(i)) {
-            scores.value[type] += q.score || 0
+            scores.value[type] = 10
           }
           break
       }
@@ -573,7 +649,15 @@ const getScoreColor = (percentage) => {
 // 修改 getWrongCount 函数
 const getWrongCount = (type) => {
   if (!paper.value?.[type] || !answers.value?.[type]) return 0
-  return paper.value[type].length - getCorrectCount(type)
+  
+  try {
+    const totalQuestions = paper.value[type].length
+    const correctAnswers = getCorrectCount(type)
+    return totalQuestions - correctAnswers
+  } catch (error) {
+    console.error(`Error counting wrong answers for ${type}:`, error)
+    return 0
+  }
 }
 
 // 修改 getCompletionRate 函数
@@ -658,6 +742,57 @@ const calculateScore = () => {
   // ... 其他题型的分数计算
   
   return totalScore
+}
+
+// 修改选择题判断函数
+const isChoiceCorrect = (index) => {
+  if (!paper.value?.choice?.[index] || !answers.value?.choice?.[index]) return false
+  
+  const userAnswer = answers.value.choice[index]
+  const correctAnswer = paper.value.choice[index].answer
+  
+  return userAnswer === correctAnswer
+}
+
+// 添加获取用户答案显示文本的函数
+const getUserAnswerText = (type, index) => {
+  if (!answers.value?.[type]?.[index]) return t('paper.noAnswer')
+  
+  switch (type) {
+    case 'choice':
+      return answers.value.choice[index] || t('paper.noAnswer')
+    case 'truefalse':
+      return answers.value.truefalse[index] ? t('paper.true') : t('paper.false')
+    case 'programming':
+    case 'completion':
+    case 'shortanswer':
+      return answers.value[type][index] || t('paper.noAnswer')
+    case 'matching':
+      if (!answers.value.matching[index]) return t('paper.noAnswer')
+      return formatMatchingAnswer(answers.value.matching[index])
+    default:
+      return t('paper.noAnswer')
+  }
+}
+
+// 添加获取正确答案显示文本的函数
+const getCorrectAnswerText = (type, index) => {
+  if (!paper.value?.[type]?.[index]) return ''
+  
+  switch (type) {
+    case 'choice':
+      return paper.value.choice[index].answer
+    case 'truefalse':
+      return paper.value.truefalse[index].answer ? t('paper.true') : t('paper.false')
+    case 'programming':
+    case 'completion':
+    case 'shortanswer':
+      return paper.value[type][index].answer
+    case 'matching':
+      return formatMatchingAnswer(paper.value.matching[index].answer)
+    default:
+      return ''
+  }
 }
 </script>
 

@@ -44,7 +44,7 @@
             </div>
           </div>
           <div class="item-actions">
-            <button class="action-btn view" @click="viewPaper(paper)" title="查看试卷">
+            <button class="action-btn view" @click="viewPaper(paper, index)" title="查看试卷">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
               </svg>
@@ -82,7 +82,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getPaperHistory, savePaperToHistory } from '@/services/paper'
+import { getPaperHistory, savePaperToHistory, clearPaperHistory } from '@/services/paper'
 import { eventBus } from '@/utils/eventBus'
 
 const router = useRouter()
@@ -102,7 +102,7 @@ onUnmounted(() => {
 })
 
 const loadHistory = () => {
-  history.value = getPaperHistory(isPremium.value)
+  history.value = getPaperHistory()
   totalHistory.value = getPaperHistory(true).length
 }
 
@@ -144,9 +144,9 @@ const getQuestionTypeName = (type) => {
   return names[type]
 }
 
-const viewPaper = (paper) => {
+const viewPaper = (paper, index) => {
   localStorage.setItem('currentPaper', JSON.stringify(paper))
-  router.push('/view-paper')
+  router.push(`/view-paper?id=${index}`)
 }
 
 const deletePaper = (index) => {
@@ -160,7 +160,7 @@ const deletePaper = (index) => {
 
 const clearHistory = () => {
   if (confirm('确定要清空所有历史记录吗？')) {
-    localStorage.setItem('paper_history', '[]')
+    clearPaperHistory()
     loadHistory()
   }
 }

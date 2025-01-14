@@ -23,6 +23,8 @@
     "noAnswer": "未作答",
     "yourAnswer": "你的答案",
     "correctAnswer": "正确答案",
-    "totalScore": "总分"
+    "totalScore": "总分",
+    "defaultTitle": "编程能力测试",
+    "generateError": "生成试卷失败，请重试"
   }
 } 

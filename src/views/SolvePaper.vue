@@ -50,7 +50,7 @@
               :key="`choice_${index}`"
               class="dot"
               :class="{
-                'completed': answers.choice[index] !== null,
+                'completed': isQuestionAnswered('choice', index),
                 'current': currentType === 'choice' && currentIndex === index
               }"
               @click="scrollToQuestion('choice', index)"
@@ -179,7 +179,7 @@
                   <span class="question-number">{{ index + 1 }}</span>
                   <span class="question-score">{{ question.score }}分</span>
                 </div>
-                <div class="question-status" v-if="answers.choice[index]">
+                <div class="question-status" v-if="isQuestionAnswered('choice', index)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
                   </svg>
@@ -188,15 +188,22 @@
               </div>
               <div class="question-content" v-html="formatQuestionContent(question.content)"></div>
               <div class="options-list">
-                <label v-for="(option, key) in question.options" 
-                       :key="key" 
-                       class="option-item">
-                  <input type="radio" 
-                         :name="`choice_${index}`"
-                         :value="key"
-                         v-model="answers.choice[index]">
-                  <span class="option-text">{{ key }}. {{ option }}</span>
-                </label>
+                <div v-for="(optionValue, optionKey) in question.options" 
+                     :key="optionKey"
+                     :class="['option-item', { 
+                       selected: answers.choice[index] === optionKey
+                     }]"
+                     @click="selectAnswer('choice', index, optionKey)">
+                  <label>
+                    <input type="radio" 
+                           :name="`choice-${index}`" 
+                           :value="optionKey"
+                           :checked="answers.choice[index] === optionKey"
+                           @change="selectAnswer('choice', index, optionKey)">
+                    <span class="option-label">{{ optionKey }}</span>
+                    <span>{{ optionValue }}</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -415,6 +422,7 @@ const { t } = useI18n()
 const paper = ref(null)
 const timeLeft = ref(0)
 const timer = ref(null)
+const startTime = ref(null)
 
 // 修改初始化答案对象的方式
 const answers = ref({
@@ -426,7 +434,52 @@ const answers = ref({
   matching: []
 })
 
+// 修改选择答案的函数
+const selectAnswer = (type, index, value) => {
+  if (!answers.value[type]) {
+    answers.value[type] = []
+  }
+  
+  switch (type) {
+    case 'choice':
+      // 直接保存选项值（A、B、C、D）
+      answers.value.choice[index] = value
+      // 自动保存到 localStorage
+      saveAnswers()
+      break
+    case 'truefalse':
+      answers.value.truefalse[index] = value === 'true'
+      break
+    case 'programming':
+    case 'completion':
+    case 'shortanswer':
+      answers.value[type][index] = value
+      break
+    case 'matching':
+      if (!answers.value.matching[index]) {
+        answers.value.matching[index] = []
+      }
+      answers.value.matching[index] = value
+      break
+  }
+}
+
+// 修改保存答案的函数
+const saveAnswers = () => {
+  const formattedAnswers = {
+    ...answers.value,
+    choice: answers.value.choice.map(answer => answer || '')
+  }
+  localStorage.setItem('paperAnswers', JSON.stringify({
+    answers: formattedAnswers,
+    timestamp: Date.now()
+  }))
+}
+
 const formatTime = (seconds) => {
+  if (typeof seconds !== 'number' || isNaN(seconds)) {
+    return '00:00'
+  }
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
@@ -440,25 +493,40 @@ const confirmExit = () => {
 }
 
 const submitPaper = () => {
-  // 记录结束时间
-  localStorage.setItem('examEndTime', new Date().toISOString())
+  // 计算用时（秒）
+  const usedTime = startTime.value ? Math.floor((Date.now() - startTime.value) / 1000) : 0
   
-  // 保存答案
-  localStorage.setItem('paperAnswers', JSON.stringify(answers.value))
+  // 确保选择题答案正确保存
+  const formattedAnswers = {
+    ...answers.value,
+    choice: answers.value.choice.map(answer => answer || '')  // 确保未答题时为空字符串
+  }
+
+  // 保存答案和用时
+  localStorage.setItem('paperAnswers', JSON.stringify({
+    answers: formattedAnswers,
+    usedTime: usedTime
+  }))
   
-  // 跳转到结果页面
   router.push('/paper-result')
 }
 
 onMounted(() => {
-  // 记录开始答题时间
-  localStorage.setItem('examStartTime', new Date().toISOString())
+  // 记录开始时间
+  startTime.value = Date.now()
+  localStorage.setItem('examStartTime', startTime.value.toString())
   
   // 从 localStorage 获取试卷数据
   const paperData = localStorage.getItem('currentPaper')
   if (paperData) {
     paper.value = JSON.parse(paperData)
-    initializeAnswers() // 初始化答案
+    
+    // 确保清除所有之前的答案记录
+    localStorage.removeItem('paperAnswers')
+    localStorage.removeItem('answerState')
+    
+    // 初始化全新的答案对象
+    initializeAnswers()
     
     // 设置计时器
     if (paper.value.duration) {
@@ -547,6 +615,11 @@ const getCompletedCount = (type) => {
   
   switch (type) {
     case 'choice':
+      return answers.value[type].filter(answer => 
+        answer !== undefined && 
+        answer !== null && 
+        answer !== ''
+      ).length
     case 'truefalse':
       return answers.value[type].filter(answer => answer !== null).length
     case 'programming':
@@ -613,14 +686,22 @@ onMounted(() => {
 const initializeAnswers = () => {
   if (!paper.value) return;
   
+  // 重置所有答案为初始状态
   answers.value = {
-    choice: Array(paper.value.choice?.length || 0).fill(null),
+    choice: new Array(paper.value.choice?.length || 0),
     programming: Array(paper.value.programming?.length || 0).fill(''),
     completion: Array(paper.value.completion?.length || 0).fill(''),
     truefalse: Array(paper.value.truefalse?.length || 0).fill(null),
     shortanswer: Array(paper.value.shortanswer?.length || 0).fill(''),
-    matching: Array(paper.value.matching?.length || 0).fill(null).map(() => [])
+    matching: Array(paper.value.matching?.length || 0).fill([])
   }
+}
+
+// 添加格式化选择题答案的方法
+const formatChoiceAnswer = (index) => {
+  const answer = answers.value.choice[index]
+  if (answer === null) return ''
+  return String.fromCharCode(65 + answer)
 }
 
 // 修改匹配题的答案处理
@@ -659,6 +740,29 @@ const escapeHtml = (unsafe) => {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;")
+}
+
+// 添加判断题目是否已作答的函数
+const isQuestionAnswered = (type, index) => {
+  if (!answers.value[type]) return false
+  
+  switch (type) {
+    case 'choice':
+      // 确保选择题答案存在且不为空
+      return answers.value.choice[index] !== undefined && 
+             answers.value.choice[index] !== null && 
+             answers.value.choice[index] !== ''
+    case 'truefalse':
+      return answers.value.truefalse[index] !== null
+    case 'programming':
+    case 'completion':
+    case 'shortanswer':
+      return answers.value[type][index]?.trim() !== ''
+    case 'matching':
+      return isMatchingQuestionAnswered(index)
+    default:
+      return false
+  }
 }
 </script>
 
@@ -856,31 +960,25 @@ const escapeHtml = (unsafe) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: #f8f9fa;
-  position: relative;
-  padding-left: 48px;
 }
 
 .option-item:hover {
-  background: #eef2ff;
+  background: #f5f7ff;
+}
+
+.option-item.selected {
+  background: #e8f0fe;
+  border: 1px solid #4F6EF7;
 }
 
 .option-item input[type="radio"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: var(--vt-c-primary);
-  position: absolute;
-  left: 16px;
-}
-
-.option-text {
-  font-size: 16px;
-  color: #333;
+  width: 18px;
+  height: 18px;
+  accent-color: #4F6EF7;
 }
 
 .code-textarea {
@@ -1365,5 +1463,11 @@ const escapeHtml = (unsafe) => {
 
 .question-content p {
   margin: 12px 0;
+}
+
+/* 保留选项标签样式 */
+.option-label {
+  color: #666;
+  margin-right: 8px;
 }
 </style> 

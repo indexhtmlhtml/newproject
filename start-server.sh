@@ -10,4 +10,5 @@ sleep 2
 
 # 启动后端服务器
 echo "Starting server..."
-node server/server.js 
+cd server
+node server.js 

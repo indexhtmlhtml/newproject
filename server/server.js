@@ -3,7 +3,7 @@ import cors from 'cors'
 import axios from 'axios'
 
 const app = express()
-const PORT = 3005
+const PORT = 3002
 
 // CORS 和安全配置
 app.use(cors({

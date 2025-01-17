@@ -79,7 +79,7 @@ const DEEPSEEK_PROMPT = `你是一个专业的编程考试出题专家。请按�
 
 export const getProblem = async (id) => {
   try {
-    const response = await axios.get(`${API_URL}/problems/${id}`)
+    const response = await axios.get(`/api/proxy/problem/${id}`)
     return response.data
   } catch (error) {
     console.error('Get problem error:', error)
@@ -87,23 +87,29 @@ export const getProblem = async (id) => {
   }
 }
 
-export const runCode = async (params) => {
+export const runCode = async (problemId, code, language) => {
   try {
-    const response = await axios.post(`${API_URL}/run-code`, params)
+    const response = await axios.post(`${API_URL}/problems/${problemId}/run`, {
+      code,
+      language
+    })
     return response.data
   } catch (error) {
     console.error('Run code error:', error)
-    throw new Error('Failed to run code')
+    throw error
   }
 }
 
-export const submitSolution = async (params) => {
+export const submitSolution = async (problemId, code, language) => {
   try {
-    const response = await axios.post(`${API_URL}/submit-solution`, params)
+    const response = await axios.post(`${API_URL}/problems/${problemId}/submit`, {
+      code,
+      language
+    })
     return response.data
   } catch (error) {
     console.error('Submit solution error:', error)
-    throw new Error('Failed to submit solution')
+    throw error
   }
 }
 
@@ -192,5 +198,103 @@ export const generateProblems = async (params) => {
       throw new Error(error.response.data.error.message)
     }
     throw new Error('Failed to generate problems')
+  }
+}
+
+export const submitCodeToAI = async (problemId, code, language) => {
+  try {
+    console.log('Submitting code:', {
+      problemId,
+      language,
+      codeLength: code.length,
+      code: code.substring(0, 100) + '...' // 只显示部分代码
+    })
+    
+    const response = await axios.post('https://www.coze.cn/open/api/v2/chat/completions', {
+      bot_id: "7460331284762787877",
+      messages: [
+        {
+          role: "system",
+          content: "你是一个专业的代码评估助手，请严格按照指定的 JSON 格式返回评估结果。"
+        },
+        {
+          role: "user",
+          content: `请评估以下${language}代码的正确性。
+问题ID: ${problemId}
+代码:
+${code}
+
+请按照以下JSON格式返回评估结果：
+{
+  "success": true/false,
+  "score": 分数(0-100),
+  "time": 运行时间(ms),
+  "memory": 内存消耗(MB),
+  "message": "评估信息",
+  "testcases": [
+    {
+      "input": "测试用例输入",
+      "output": "代码输出",
+      "expected": "期望输出",
+      "passed": true/false
+    }
+  ]
+}`
+        }
+      ],
+      stream: false,
+      temperature: 0.7,
+      top_p: 0.95,
+      presence_penalty: 0,
+      frequency_penalty: 0
+    }, {
+      headers: {
+        'Authorization': `Bearer pat_DAFNcM7kUKLI7I3JbbYFALleLJcik6CksPhgme4KOHx7QLjkx2u6OXYf4FyMzp28`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 30000
+    })
+
+    console.log('API Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    })
+    
+    if (!response.data || typeof response.data !== 'object') {
+      console.error('Invalid response format:', response.data)
+      throw new Error('服务器返回格式错误')
+    }
+    
+    return response.data
+  } catch (error) {
+    console.group('Submission Error Details')
+    console.error('Error object:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      stack: error.stack?.split('\n')
+    })
+    console.error('Response details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      headers: error.response?.headers,
+      data: error.response?.data
+    })
+    console.error('Request details:', {
+      method: error.config?.method,
+      url: error.config?.url,
+      headers: error.config?.headers,
+      data: error.config?.data
+    })
+    console.groupEnd()
+    
+    return {
+      status: 'error',
+      message: error.response?.data?.message || error.message || '提交失败，请稍后重试',
+      testcases: []
+    }
   }
 } 

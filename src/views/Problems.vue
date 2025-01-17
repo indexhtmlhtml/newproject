@@ -69,8 +69,15 @@
           </div>
 
           <div class="problem-actions">
-            <button class="solve-btn" @click="solveProblem(problem.id)">
-              {{ t('problems.solve') }}
+            <button 
+              class="solve-btn" 
+              @click="startProblem(problem)"
+              :title="t('problems.startSolving')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M8 5v14l11-7z"/>
+              </svg>
+              <span>{{ t('problems.startSolving') }}</span>
             </button>
           </div>
         </div>
@@ -204,8 +211,56 @@ const goBack = () => {
   router.push('/home')
 }
 
-const solveProblem = (id) => {
-  router.push(`/problems/${route.params.category}/${id}/solve`)
+const startProblem = async (problem) => {
+  try {
+    // 检查题目对象是否存在
+    if (!problem) {
+      console.error('Problem object is undefined')
+      return
+    }
+    
+    // 获取题目 ID
+    const problemId = problem.id || problem.problemId
+    if (!problemId) {
+      console.error('Problem ID is missing:', problem)
+      return
+    }
+
+    // 构建完整的题目数据
+    const problemData = {
+      id: problemId.toString(),
+      title: problem.title || '',
+      difficulty: problem.difficulty || 'medium',
+      description: problem.description || '',
+      examples: problem.examples || [],
+      constraints: problem.constraints || '',
+      acceptanceRate: problem.successRate || 0,
+      submissions: problem.submissions || 0,
+      template: problem.template || '',
+      testCases: problem.testCases || []
+    }
+    
+    // 存储当前题目到 store
+    await problemsStore.setCurrentProblem(problemData)
+    
+    // 使用动画过渡效果
+    const card = event.currentTarget.closest('.problem-card')
+    if (card) {
+      card.style.transform = 'scale(0.98)'
+      card.style.transition = 'transform 0.2s ease'
+      
+      setTimeout(() => {
+        card.style.transform = 'scale(1)'
+        // 跳转到做题页面
+        router.push(`/solve-problem/${problemData.id}`)
+      }, 200)
+    } else {
+      // 如果没有找到卡片元素，直接跳转
+      router.push(`/solve-problem/${problemData.id}`)
+    }
+  } catch (error) {
+    console.error('Error starting problem:', error)
+  }
 }
 
 const showGenerateModal = ref(false)
@@ -275,6 +330,37 @@ const deleteProblem = (problemId) => {
     problems.value = problemsStore.getProblemsByCategory(category)
   }
 }
+
+// 在组件挂载时确保数据正确加载
+onMounted(async () => {
+  try {
+    const category = route.params.category
+    // 从 store 获取题目列表
+    const problemsList = problemsStore.getProblemsByCategory(category)
+    
+    if (!problemsList || !Array.isArray(problemsList)) {
+      console.error('Invalid problems list:', problemsList)
+      return
+    }
+    
+    // 确保每个题目都有正确的 ID
+    problems.value = problemsList.map(problem => {
+      const id = problem.id || problem.problemId || Date.now().toString()
+      return {
+        ...problem,
+        id: id.toString(),
+        difficulty: problem.difficulty || 'medium',
+        successRate: problem.successRate || 0,
+        submissions: problem.submissions || 0
+      }
+    })
+
+    // 打印检查处理后的题目数据
+    console.log('Processed problems:', problems.value)
+  } catch (error) {
+    console.error('Failed to load problems:', error)
+  }
+})
 
 // 在组件卸载时清理定时器
 onUnmounted(() => {
@@ -568,18 +654,49 @@ onUnmounted(() => {
 }
 
 .solve-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 16px;
-  background: var(--vt-c-primary);
+  background: var(--primary-color, #4F6EF7);
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(79, 110, 247, 0.1);
 }
 
 .solve-btn:hover {
-  background: var(--vt-c-secondary);
+  background: var(--primary-color-dark, #3D5CE5);
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(79, 110, 247, 0.2);
+}
+
+.solve-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(79, 110, 247, 0.1);
+}
+
+.solve-btn svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.solve-btn:hover svg {
+  transform: translateX(2px);
+}
+
+.problem-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.problem-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .modal-overlay {
@@ -833,6 +950,71 @@ onUnmounted(() => {
   to {
     opacity: 1;
     transform: translate(-50%, 0);
+  }
+}
+
+.problem-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding-left: 16px;
+}
+
+.solve-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--primary-color, #4F6EF7);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(79, 110, 247, 0.1);
+}
+
+.solve-btn:hover {
+  background: var(--primary-color-dark, #3D5CE5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(79, 110, 247, 0.2);
+}
+
+.solve-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(79, 110, 247, 0.1);
+}
+
+.solve-btn svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.solve-btn:hover svg {
+  transform: translateX(2px);
+}
+
+.problem-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+  .solve-btn {
+    padding: 6px 12px;
+  }
+  
+  .solve-btn span {
+    display: none;
+  }
+  
+  .solve-btn svg {
+    margin: 0;
   }
 }
 </style> 

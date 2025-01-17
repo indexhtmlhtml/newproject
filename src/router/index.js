@@ -33,11 +33,6 @@ const routes = [
     component: Problems
   },
   {
-    path: '/problems/:category/:id/solve',
-    name: 'SolveProblem',
-    component: SolveProblem
-  },
-  {
     path: '/create-paper',
     name: 'CreatePaper',
     component: () => import('../views/CreatePaper.vue')
@@ -53,9 +48,17 @@ const routes = [
     component: () => import('../views/SolvePaper.vue')
   },
   {
-    path: '/solve-problem',
+    path: '/solve-problem/:id',
     name: 'SolveProblem',
-    component: () => import('../views/SolveProblem.vue')
+    component: () => import('../views/SolveProblem.vue'),
+    props: true,
+    beforeEnter: (to, from, next) => {
+      if (!to.params.id) {
+        next('/problems')
+      } else {
+        next()
+      }
+    }
   },
   {
     path: '/paper-result',

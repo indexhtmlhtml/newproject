@@ -18,41 +18,6 @@
               </svg>
             </button>
           </div>
-          <div class="center-section">
-            <div class="tabs">
-              <button 
-                class="tab-btn" 
-                :class="{ active: activeTab === 'description' }"
-                @click="handleTabClick('description')"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
-                </svg>
-                题目描述
-              </button>
-              <button 
-                class="tab-btn" 
-                :class="{ active: activeTab === 'solution' }"
-                @click="handleTabClick('solution')"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2z"/>
-                </svg>
-                题解
-              </button>
-              <button 
-                class="tab-btn" 
-                :class="{ active: activeTab === 'analysis' }"
-                @click="handleTabClick('analysis')"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
-                  <path fill="currentColor" d="M7 12h2v5H7zm4-3h2v8h-2zm4-3h2v11h-2z"/>
-                </svg>
-                成绩分析
-              </button>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -63,7 +28,9 @@
             <h2>题目描述</h2>
             <button class="toggle-btn" @click="toggleDescription">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+                <path fill="currentColor" :d="showDescription 
+                  ? 'M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z'
+                  : 'M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z'"/>
               </svg>
             </button>
           </div>
@@ -124,6 +91,12 @@
                 <option value="java">Java</option>
                 <option value="python">Python</option>
               </select>
+              <button class="solution-btn" @click="openSolution">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
+                </svg>
+                查看题解
+              </button>
               <button class="reset-btn" @click="resetCode">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
@@ -158,24 +131,94 @@
             </button>
           </div>
         </div>
+
+        <!-- 题解模态框 -->
+        <div v-if="showSolution" class="solution-modal">
+          <div class="modal-overlay" @click="closeSolution"></div>
+          <div class="modal-container">
+            <div class="modal-header">
+              <h2>题目解析</h2>
+              <button class="close-btn" @click="closeSolution">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div class="modal-content">
+              <div v-if="loadingSolution" class="loading-state">
+                <div class="spinner"></div>
+                <p>正在生成题解...</p>
+              </div>
+              <div v-else-if="solutionError" class="error-state">
+                <p>{{ solutionError }}</p>
+                <button @click="loadSolution">重试</button>
+              </div>
+              <div v-else-if="solution" class="solution-content">
+                <div class="solution-section">
+                  <h3>解题思路</h3>
+                  <div class="solution-text" v-html="solution.approach"></div>
+                </div>
+                <div class="solution-section">
+                  <h3>代码实现</h3>
+                  <div class="solution-code">
+                    <div class="code-header">
+                      <span>{{ selectedLanguage }}</span>
+                      <button class="copy-btn" @click="copyCode(solution.code)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                          <path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <pre><code>{{ solution.code }}</code></pre>
+                  </div>
+                </div>
+                <div class="solution-section">
+                  <h3>复杂度分析</h3>
+                  <div class="complexity">
+                    <p><strong>时间复杂度：</strong>{{ solution.timeComplexity }}</p>
+                    <p><strong>空间复杂度：</strong>{{ solution.spaceComplexity }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 提交结果模态框 -->
+        <div v-if="submissionModal.show" class="modal">
+          <div class="modal-overlay" @click="closeModal"></div>
+          <div class="modal-container">
+            <div class="modal-header">
+              <h2>{{ submissionModal.title }}</h2>
+              <button class="close-btn" @click="closeModal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="modal-content" v-html="submissionModal.content"></div>
+          </div>
+        </div>
       </main>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
 import { getProblem, runCode as runCodeAPI, submitCodeToAI } from '../services/problems'
 import { getProblemStats, getSubmissions } from '@/services/jieti'
 import { useProblemsStore } from '../stores/problems'
+import axios from 'axios'
 
 const route = useRoute()
 const router = useRouter()
 const problemsStore = useProblemsStore()
 const problem = ref(null)
-const activeTab = ref('description')
+const showSolution = ref(false)
 const code = ref('')
 const selectedLanguage = ref('cpp')
 const isRunning = ref(false)
@@ -186,6 +229,18 @@ const problemStats = ref({
   acceptanceRate: 0
 })
 const submissions = ref([])
+const solution = ref(null)
+const loadingSolution = ref(false)
+const solutionError = ref(null)
+const submissionStatus = ref({
+  status: '',
+  message: ''
+})
+const submissionModal = ref({
+  show: false,
+  title: '',
+  content: ''
+})
 
 const codeTemplates = {
   cpp: `class Solution {
@@ -206,18 +261,6 @@ public:
 
 const initCode = () => {
   code.value = codeTemplates[selectedLanguage.value]
-}
-
-const handleTabClick = async (tab) => {
-  activeTab.value = tab
-  if (tab === 'analysis') {
-    await loadAnalysisData()
-    // 初始化图表
-    const canvas = document.querySelector('.submission-chart canvas')
-    if (canvas) {
-      initChart(canvas)
-    }
-  }
 }
 
 const loadAnalysisData = async () => {
@@ -259,19 +302,131 @@ const handleRunCode = async () => {
   }
 }
 
+const showModal = (modal) => {
+  submissionModal.value = {
+    show: true,
+    title: modal.title,
+    content: modal.content
+  }
+}
+
+const closeModal = () => {
+  submissionModal.value.show = false
+}
+
 const submitCode = async () => {
   if (isSubmitting.value) return
   
   try {
     isSubmitting.value = true
-    const result = await submitCodeToAI(route.params.id, code.value, selectedLanguage.value)
-    // 处理提交结果
-    console.log('Submit result:', result)
+    // 更新提交状态
+    submissionStatus.value = {
+      status: 'submitting',
+      message: '正在评估代码...'
+    }
+
+    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: `你是一个专业的代码评估专家。请评估提交的代码是否正确解决了问题，并按照以下JSON格式返回评估结果：
+          {
+            "success": true/false,
+            "score": 0-100的分数,
+            "time_complexity": "时间复杂度分析",
+            "space_complexity": "空间复杂度分析",
+            "correctness": "代码正确性分析",
+            "test_cases": [
+              {
+                "input": "测试用例输入",
+                "expected": "期望输出",
+                "actual": "实际输出",
+                "passed": true/false
+              }
+            ],
+            "suggestions": ["改进建议1", "改进建议2"]
+          }`
+        },
+        {
+          role: "user",
+          content: `请评估以下代码：
+          题目：${problem.value.title}
+          描述：${problem.value.description}
+          编程语言：${selectedLanguage.value}
+          代码：
+          ${code.value}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const result = JSON.parse(response.data.choices[0].message.content)
+    
+    // 显示评估结果
+    showSubmissionResult(result)
+
   } catch (error) {
     console.error('Submit code failed:', error)
+    submissionStatus.value = {
+      status: 'error',
+      message: '提交失败，请稍后重试'
+    }
   } finally {
     isSubmitting.value = false
   }
+}
+
+// 添加提交结果展示模态框
+const showSubmissionResult = (result) => {
+  const modal = {
+    title: result.success ? '提交成功' : '提交失败',
+    content: `
+      <div class="submission-result">
+        <div class="score-section">
+          <h3>得分：${result.score}</h3>
+          <div class="complexity-info">
+            <p>时间复杂度：${result.time_complexity}</p>
+            <p>空间复杂度：${result.space_complexity}</p>
+          </div>
+        </div>
+        
+        <div class="test-cases">
+          <h3>测试用例</h3>
+          ${result.test_cases.map((test, index) => `
+            <div class="test-case ${test.passed ? 'passed' : 'failed'}">
+              <div class="test-header">
+                <span>测试用例 ${index + 1}</span>
+                <span class="status">${test.passed ? '通过' : '失败'}</span>
+              </div>
+              <div class="test-details">
+                <p>输入：${test.input}</p>
+                <p>期望输出：${test.expected}</p>
+                <p>实际输出：${test.actual}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        
+        ${result.suggestions.length > 0 ? `
+          <div class="suggestions">
+            <h3>改进建议</h3>
+            <ul>
+              ${result.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+      </div>
+    `
+  }
+  
+  // 显示结果模态框
+  showModal(modal)
 }
 
 const resetCode = () => {
@@ -287,6 +442,64 @@ const showDescription = ref(true)
 
 const toggleDescription = () => {
   showDescription.value = !showDescription.value
+}
+
+const loadSolution = async () => {
+  if (!problem.value) return
+  
+  loadingSolution.value = true
+  solutionError.value = null
+  
+  try {
+    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: `你是一个专业的算法专家。请针对给定的编程题目，提供详细的解题思路和代码实现。
+请按照以下JSON格式返回：
+{
+  "approach": "解题思路和算法分析",
+  "code": "完整的代码实现",
+  "timeComplexity": "时间复杂度分析",
+  "spaceComplexity": "空间复杂度分析"
+}`
+        },
+        {
+          role: "user",
+          content: `请为以下题目提供详细题解：
+题目：${problem.value.title}
+描述：${problem.value.description}
+编程语言：${selectedLanguage.value}`
+        }
+      ],
+      response_format: {
+        type: "json_object"
+      }
+    }, {
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const result = response.data.choices[0].message.content
+    solution.value = JSON.parse(result)
+  } catch (error) {
+    console.error('Failed to load solution:', error)
+    solutionError.value = '获取题解失败，请稍后重试'
+  } finally {
+    loadingSolution.value = false
+  }
+}
+
+const copyCode = async (code) => {
+  try {
+    await navigator.clipboard.writeText(code)
+    // 可以添加一个复制成功的提示
+  } catch (err) {
+    console.error('Failed to copy code:', err)
+  }
 }
 
 onMounted(async () => {
@@ -324,26 +537,39 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+const openSolution = async () => {
+  showSolution.value = true
+  if (!solution.value && !loadingSolution.value) {
+    await loadSolution()
+  }
+}
+
+const closeSolution = () => {
+  showSolution.value = false
+}
 </script>
 
 <style scoped>
-/* 基础布局 */
+/* 基础布局优化 */
 .solve-problem {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f7fa;
+  background: #fafbfc;
 }
 
-/* 头部样式 */
+/* 头部样式优化 */
 .header {
   background: white;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   padding: 0 24px;
   height: 64px;
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .header-content {
@@ -378,62 +604,41 @@ onMounted(async () => {
   background: #f5f7fa;
 }
 
-.center-section {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-}
-
-.tabs {
-  display: flex;
-  gap: 24px;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: none;
-  background: none;
-  color: #606266;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.tab-btn.active {
-  color: var(--primary-color, #4F6EF7);
-  border-bottom-color: var(--primary-color, #4F6EF7);
-}
-
-/* 主要内容区域 */
+/* 主内容区域优化 */
 .main-content {
   display: flex;
-  gap: 16px;
-  padding: 16px;
+  gap: 24px;
+  padding: 24px;
   height: calc(100vh - 64px);
   overflow: hidden;
-}
-
-.description-panel,
-.editor-panel {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  max-width: 1800px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .description-panel {
   flex: 1;
-  overflow-y: auto;
   min-width: 400px;
+  max-width: 800px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  overflow-y: auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: left center;
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .editor-panel {
   flex: 1;
+  min-width: 500px;
+  max-width: 1000px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .panel-header {
@@ -450,7 +655,7 @@ onMounted(async () => {
   background: none;
   cursor: pointer;
   border-radius: 4px;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 
 .toggle-btn:hover {
@@ -458,14 +663,40 @@ onMounted(async () => {
 }
 
 .panel-collapsed {
-  flex: 0;
-  min-width: 0;
-  width: 40px;
+  flex: 0 0 auto;
+  min-width: 48px;
+  width: 48px;
   overflow: hidden;
+  position: relative;
+  transform-origin: left center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.panel-expanded {
-  flex: 2;
+.panel-collapsed .panel-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 100%;
+  padding: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel-collapsed .toggle-btn {
+  margin: 8px 0;
+}
+
+.panel-collapsed h2 {
+  font-size: 14px;
+  white-space: nowrap;
+  margin: 8px 0;
 }
 
 .editor-controls {
@@ -529,9 +760,24 @@ onMounted(async () => {
 }
 
 .example {
-  background: #f5f7fa;
-  border-radius: 8px;
-  padding: 16px;
+  background: rgba(0, 0, 0, 0.01);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.example::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary-color);
+  opacity: 0.3;
 }
 
 .example-title {
@@ -541,27 +787,114 @@ onMounted(async () => {
 }
 
 .example-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: #606266;
+  font-family: 'Fira Code', monospace;
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  line-height: 1.6;
+  position: relative;
+  overflow-x: auto;
+}
+
+.example-content::-webkit-scrollbar {
+  height: 6px;
+}
+
+.example-content::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.example-content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
 }
 
 .constraints {
-  margin-top: 24px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.constraints:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .constraints h3 {
-  font-size: 18px;
+  color: var(--text-primary);
+  font-size: 16px;
+  margin-bottom: 12px;
   font-weight: 600;
-  color: #303133;
-  margin-bottom: 16px;
 }
 
 .constraints ul {
-  list-style-type: disc;
-  padding-left: 24px;
-  color: #606266;
+  color: var(--text-regular);
+  padding-left: 20px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.constraints li {
+  margin: 8px 0;
+  position: relative;
+  padding-left: 8px;
+}
+
+.constraints li::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--primary-color);
+}
+
+/* 暗色主题支持优化 */
+@media (prefers-color-scheme: dark) {
+  .solve-problem {
+    background: #111111;
+  }
+
+  .header {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .description-panel {
+    background: #1e1e1e;
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .example {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .constraints {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .example-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+  }
+
+  .example-content::-webkit-scrollbar-thumb {
+    background: #444;
+  }
+
+  .constraints li::before {
+    background: var(--primary-color);
+    opacity: 0.8;
+  }
 }
 
 /* 响应式设计 */
@@ -656,52 +989,149 @@ onMounted(async () => {
 
 /* 题目描述样式优化 */
 .problem-info {
-  padding: 20px;
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .problem-header {
   margin-bottom: 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.problem-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100px;
+  height: 2px;
+  background: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.problem-header:hover::after {
+  width: 150px;
 }
 
 .problem-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 .problem-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 16px;
+  margin: 16px 0;
 }
 
 .difficulty,
 .tag {
-  padding: 4px 12px;
-  border-radius: 16px;
+  padding: 6px 14px;
+  border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: none;
+  border: 1px solid;
+}
+
+.difficulty.easy {
+  background: rgba(103, 194, 58, 0.05);
+  color: #67c23a;
+  border-color: rgba(103, 194, 58, 0.2);
+}
+
+.difficulty.medium {
+  background: rgba(230, 162, 60, 0.05);
+  color: #e6a23c;
+  border-color: rgba(230, 162, 60, 0.2);
+}
+
+.difficulty.hard {
+  background: rgba(245, 108, 108, 0.05);
+  color: #f56c6c;
+  border-color: rgba(245, 108, 108, 0.2);
 }
 
 .tag {
-  background: var(--background-color);
+  background: rgba(0, 0, 0, 0.02);
   color: var(--text-regular);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.tag:hover {
+  background: #e9e9eb;
+  transform: translateY(-1px);
+}
+
+.problem-stats {
+  display: flex;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.stat-value.success {
+  color: #67c23a;
 }
 
 .problem-content {
   color: var(--text-regular);
   line-height: 1.6;
   margin-bottom: 24px;
+  font-size: 15px;
+  white-space: pre-wrap;
 }
 
 /* 示例样式优化 */
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 24px 0;
+}
+
 .example {
-  background: var(--background-color);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #eee;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.example:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .example-title {
@@ -713,34 +1143,104 @@ onMounted(async () => {
 .example-content {
   font-family: 'Fira Code', monospace;
   background: #fff;
-  padding: 12px;
-  border-radius: 4px;
+  padding: 16px;
+  border-radius: 8px;
   border: 1px solid var(--border-color);
+  font-size: 14px;
+  line-height: 1.6;
+  position: relative;
+  overflow-x: auto;
 }
 
 .example-content strong {
-  color: var(--primary-color);
+  color: #606266;
+  font-weight: 600;
 }
 
 /* 约束条件样式优化 */
 .constraints {
   background: #fff;
-  border-radius: 8px;
-  padding: 16px;
-  margin-top: 24px;
-  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 24px 0;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.constraints:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .constraints h3 {
   color: var(--text-primary);
   font-size: 16px;
   margin-bottom: 12px;
+  font-weight: 600;
 }
 
 .constraints ul {
   color: var(--text-regular);
   padding-left: 20px;
   line-height: 1.6;
+  font-size: 14px;
+}
+
+.constraints li {
+  margin: 8px 0;
+  position: relative;
+  padding-left: 8px;
+}
+
+.constraints li::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--primary-color);
+}
+
+/* 暗色主题支持优化 */
+@media (prefers-color-scheme: dark) {
+  .solve-problem {
+    background: #111111;
+  }
+
+  .header {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .description-panel {
+    background: #1e1e1e;
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .example {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .constraints {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .example-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+  }
+
+  .example-content::-webkit-scrollbar-thumb {
+    background: #444;
+  }
+
+  .constraints li::before {
+    background: var(--primary-color);
+    opacity: 0.8;
+  }
 }
 
 /* 滚动条样式 */
@@ -813,35 +1313,324 @@ onMounted(async () => {
   }
 }
 
+/* 确保代码编辑器区域不会过度扩展 */
+.editor-panel.panel-expanded {
+  flex: 1.5;
+  max-width: 1200px;
+}
+
+/* 添加过渡效果 */
+.description-panel,
+.editor-panel {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 响应式布局优化 */
+@media (max-width: 1200px) {
+  .editor-panel {
+    min-width: 400px;
+  }
+  
+  .editor-panel.panel-expanded {
+    flex: 1.2;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+    height: auto;
+    padding: 12px;
+  }
+  
+  .description-panel {
+    min-width: 100%;
+  }
+  
+  .editor-panel {
+    min-width: 100%;
+    height: 500px;
+  }
+  
+  .panel-collapsed {
+    width: 100%;
+    height: 48px;
+  }
+
+  .panel-collapsed .panel-header {
+    width: 100%;
+    height: 48px;
+    writing-mode: horizontal-tb;
+    transform: none;
+    padding: 0 16px;
+    flex-direction: row;
+  }
+
+  .panel-collapsed .toggle-btn {
+    transform: rotate(0deg);
+  }
+
+  .panel-collapsed h2 {
+    margin: 0;
+  }
+}
+
+/* 内容过渡效果 */
+.problem-info {
+  opacity: 1;
+  transition: opacity 0.2s ease-in;
+}
+
+.panel-collapsed .problem-info {
+  opacity: 0;
+  transition: opacity 0.1s ease-out;
+}
+
+/* 题解面板样式 */
+.solution-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.modal-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.close-btn {
+  padding: 8px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+
+.modal-content {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 70px);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 暗色主题支持 */
 @media (prefers-color-scheme: dark) {
-  .description-panel,
-  .editor-panel {
+  .modal-container {
     background: #1e1e1e;
-    color: #d4d4d4;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .problem-title {
-    color: #fff;
+  .modal-header {
+    border-color: rgba(255, 255, 255, 0.06);
   }
+}
 
-  .example-content,
-  .constraints {
-    background: #252526;
-    border-color: #333;
-  }
+/* 添加题解按钮样式 */
+.solution-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  color: var(--text-regular);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  .tag {
+.solution-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.solution-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .solution-btn {
     background: #2d2d2d;
-    color: #d4d4d4;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* 提交结果样式 */
+.submission-result {
+  padding: 20px;
+}
+
+.score-section {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+}
+
+.score-section h3 {
+  font-size: 24px;
+  color: var(--primary-color);
+  margin-bottom: 12px;
+}
+
+.complexity-info {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.test-cases {
+  margin: 24px 0;
+}
+
+.test-case {
+  margin: 12px 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.test-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.test-case.passed .status {
+  color: #67c23a;
+}
+
+.test-case.failed .status {
+  color: #f56c6c;
+}
+
+.test-details {
+  padding: 12px;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+}
+
+.suggestions {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+}
+
+.suggestions ul {
+  margin-top: 12px;
+  padding-left: 20px;
+}
+
+.suggestions li {
+  margin: 8px 0;
+  color: var(--text-regular);
+}
+
+/* 暗色主题支持 */
+@media (prefers-color-scheme: dark) {
+  .score-section,
+  .test-header,
+  .suggestions {
+    background: rgba(255, 255, 255, 0.02);
   }
 
-  .description-panel::-webkit-scrollbar-track {
-    background: #252526;
+  .test-case {
+    border-color: rgba(255, 255, 255, 0.1);
   }
+}
 
-  .description-panel::-webkit-scrollbar-thumb {
-    background: #666;
-  }
+/* 通用模态框样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease;
 }
 </style> 

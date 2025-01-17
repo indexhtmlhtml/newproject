@@ -580,4 +580,268 @@ onMounted(async () => {
     height: 40px;
   }
 }
+
+/* 代码编辑器样式优化 */
+.editor-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.code-editor {
+  flex: 1;
+  width: 100%;
+  min-height: 400px;
+  padding: 16px;
+  font-family: 'Fira Code', Consolas, Monaco, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #d4d4d4;
+  background: #1e1e1e;
+  border: none;
+  resize: none;
+  outline: none;
+}
+
+.editor-footer {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #252526;
+  border-top: 1px solid #333;
+}
+
+.run-btn,
+.submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.run-btn {
+  background: #2d2d2d;
+  color: #fff;
+}
+
+.submit-btn {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.run-btn:hover {
+  background: #3d3d3d;
+}
+
+.submit-btn:hover {
+  background: var(--primary-color-dark);
+  transform: translateY(-1px);
+}
+
+.run-btn:disabled,
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 题目描述样式优化 */
+.problem-info {
+  padding: 20px;
+}
+
+.problem-header {
+  margin-bottom: 24px;
+}
+
+.problem-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.problem-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.difficulty,
+.tag {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tag {
+  background: var(--background-color);
+  color: var(--text-regular);
+}
+
+.problem-content {
+  color: var(--text-regular);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+/* 示例样式优化 */
+.example {
+  background: var(--background-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.example-title {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.example-content {
+  font-family: 'Fira Code', monospace;
+  background: #fff;
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.example-content strong {
+  color: var(--primary-color);
+}
+
+/* 约束条件样式优化 */
+.constraints {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 24px;
+  border: 1px solid var(--border-color);
+}
+
+.constraints h3 {
+  color: var(--text-primary);
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.constraints ul {
+  color: var(--text-regular);
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+/* 滚动条样式 */
+.description-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.description-panel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.description-panel::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.description-panel::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* 折叠/展开动画 */
+.panel-collapsed,
+.panel-expanded {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+    height: auto;
+    padding: 12px;
+  }
+  
+  .description-panel {
+    min-width: 100%;
+  }
+  
+  .panel-collapsed {
+    width: 100%;
+    height: 40px;
+  }
+
+  .problem-title {
+    font-size: 20px;
+  }
+
+  .problem-tags {
+    flex-wrap: wrap;
+  }
+
+  .editor-container {
+    min-height: 300px;
+  }
+
+  .code-editor {
+    font-size: 13px;
+  }
+
+  .editor-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .run-btn,
+  .submit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* 暗色主题支持 */
+@media (prefers-color-scheme: dark) {
+  .description-panel,
+  .editor-panel {
+    background: #1e1e1e;
+    color: #d4d4d4;
+  }
+
+  .problem-title {
+    color: #fff;
+  }
+
+  .example-content,
+  .constraints {
+    background: #252526;
+    border-color: #333;
+  }
+
+  .tag {
+    background: #2d2d2d;
+    color: #d4d4d4;
+  }
+
+  .description-panel::-webkit-scrollbar-track {
+    background: #252526;
+  }
+
+  .description-panel::-webkit-scrollbar-thumb {
+    background: #666;
+  }
+}
 </style> 

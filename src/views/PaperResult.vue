@@ -363,6 +363,89 @@ const maxScores = ref({
   matching: 0
 })
 
+// 计算每种题型的最大分数
+const calculateMaxScores = (paper) => {
+  const maxScores = {
+    choice: 0,
+    programming: 0,
+    completion: 0,
+    truefalse: 0,
+    shortanswer: 0,
+    matching: 0
+  }
+
+  Object.entries(paper).forEach(([type, questions]) => {
+    if (Array.isArray(questions)) {
+      if (type === 'programming' || type === 'shortanswer') {
+        // 编程题和简答题每题10分
+        maxScores[type] = questions.length * 10
+      } else {
+        // 其他题型使用题目自带的分数
+        maxScores[type] = questions.reduce((sum, q) => sum + (q.score || 0), 0)
+      }
+    }
+  })
+
+  return maxScores
+}
+
+// 添加题型分析数据
+const typeAnalysis = computed(() => {
+  if (!paper.value || !answers.value) return []
+  
+  const questionTypes = {
+    choice: t('选择题'),
+    programming: t('编程题'),
+    completion: t('填空题'),
+    truefalse: t('判断题'),
+    shortanswer: t('简答题'),
+    matching: t('匹配题')
+  }
+
+  return Object.entries(scores.value).map(([type, score]) => {
+    if (maxScores.value[type] === 0) return null
+    
+    return {
+      type: questionTypes[type],
+      score,
+      maxScore: maxScores.value[type],
+      percentage: Math.round((score / maxScores.value[type]) * 100),
+      completionRate: getCompletionRate(type),
+      accuracyRate: getAccuracyRate(type),
+      questionCount: paper.value[type]?.length || 0,
+      correctCount: getCorrectCount(type),
+      wrongCount: getWrongCount(type)
+    }
+  }).filter(Boolean)
+})
+
+onMounted(() => {
+  // 获取答案数据
+  const savedData = localStorage.getItem('paperAnswers')
+  const savedPaper = localStorage.getItem('currentPaper')
+  
+  try {
+    if (savedPaper) {
+      paper.value = JSON.parse(savedPaper)
+      maxScores.value = calculateMaxScores(paper.value)
+    }
+    
+    if (savedData) {
+      const data = JSON.parse(savedData)
+      if (data.scores) {
+        scores.value = data.scores
+      }
+      if (data.totalScore) {
+        totalScore.value = data.totalScore
+      }
+      answers.value = data.answers
+      timeUsed.value = data.usedTime || 0
+    }
+  } catch (error) {
+    console.error('Error parsing data:', error)
+  }
+})
+
 // 修改总分上限计算
 const totalMaxScore = computed(() => {
   return Object.entries(paper.value || {}).reduce((total, [type, questions]) => {
@@ -440,14 +523,35 @@ const getCorrectCount = (type) => {
   if (!paper.value?.[type] || !answers.value?.[type]) return 0
   
   try {
-    return paper.value[type].filter((q, i) => {
-      if (!q || !answers.value[type][i]) return false
-      
-      if (type === 'matching') {
-        return JSON.stringify(answers.value[type][i]) === JSON.stringify(q.answer)
-      }
-      return answers.value[type][i] === q.answer
-    }).length
+    switch (type) {
+      case 'programming':
+        // 编程题使用 AI 评分结果，分数 >= 6 算正确
+        return paper.value[type].filter((_, i) => {
+          const answer = answers.value[type][i]
+          return answer && answer.score >= 6
+        }).length
+      case 'shortanswer':
+        // 简答题使用 AI 评分结果，分数 >= 6 算正确
+        return paper.value[type].filter((_, i) => {
+          const answer = answers.value[type][i]
+          return answer && answer.score >= 6
+        }).length
+      case 'matching':
+        return paper.value[type].filter((q, i) => {
+          return JSON.stringify(answers.value[type][i]) === JSON.stringify(q.answer)
+        }).length
+      case 'completion':
+        // 填空题需要完全匹配
+        return paper.value[type].filter((q, i) => {
+          const userAnswer = answers.value[type][i]
+          return userAnswer && userAnswer.trim() === q.answer.trim()
+        }).length
+      default:
+        // 其他题型（选择题、判断题）
+        return paper.value[type].filter((q, i) => {
+          return answers.value[type][i] === q.answer
+        }).length
+    }
   } catch (error) {
     console.error(`Error counting correct answers for ${type}:`, error)
     return 0
@@ -478,27 +582,6 @@ const wrongCount = computed(() => {
   return count
 })
 
-// 添加题型分析数据
-const typeAnalysis = computed(() => {
-  if (!paper.value || !answers.value) return []
-  
-  return Object.entries(scores.value).map(([type, score]) => {
-    if (maxScores.value[type] === 0) return null
-    
-    return {
-      type: getQuestionTypeName(type),
-      score,
-      maxScore: maxScores.value[type],
-      percentage: Math.round((score / maxScores.value[type]) * 100),
-      completionRate: getCompletionRate(type),
-      accuracyRate: getAccuracyRate(type),
-      questionCount: paper.value[type]?.length || 0,
-      correctCount: getCorrectCount(type),
-      wrongCount: getWrongCount(type)
-    }
-  }).filter(Boolean)
-})
-
 // 添加成绩等级评定
 const scoreLevel = computed(() => {
   const percentage = Number(scorePercentage.value)
@@ -509,40 +592,6 @@ const scoreLevel = computed(() => {
   return { text: '不及格', color: '#F44336' }
 })
 
-onMounted(() => {
-  // 获取答案数据
-  const savedData = localStorage.getItem('paperAnswers')
-  const savedPaper = localStorage.getItem('currentPaper')
-  
-  let parsedAnswers = null
-  let parsedPaper = null
-  
-  try {
-    if (savedPaper) {
-      parsedPaper = JSON.parse(savedPaper)
-      paper.value = parsedPaper
-    }
-    
-    if (savedData) {
-      const data = JSON.parse(savedData)
-      if (data.answers) {
-        parsedAnswers = data.answers
-        timeUsed.value = data.usedTime || 0
-      } else {
-        parsedAnswers = data
-      }
-      answers.value = parsedAnswers
-    }
-    
-    // 只有当试卷和答案都存在时才计算分数
-    if (parsedPaper && parsedAnswers) {
-      calculateScores()
-    }
-  } catch (error) {
-    console.error('Error parsing data:', error)
-  }
-})
-
 // 修改格式化时间的函数
 const formatTime = (seconds) => {
   if (typeof seconds !== 'number' || isNaN(seconds)) {
@@ -551,57 +600,6 @@ const formatTime = (seconds) => {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}分${remainingSeconds}秒`
-}
-
-// 修改计算分数的函数
-const calculateScores = () => {
-  // 重置分数
-  Object.keys(scores.value).forEach(type => {
-    scores.value[type] = 0
-    maxScores.value[type] = 0
-  })
-  
-  // 如果没有试卷或答案数据，直接返回
-  if (!paper.value || !answers.value) return
-  
-  // 遍历所有题型计算分数
-  Object.entries(paper.value).forEach(([type, questions]) => {
-    if (!Array.isArray(questions)) return
-
-    questions.forEach((q, i) => {
-      // 确保分数是有效数字
-      const questionScore = parseInt(q.score) || 0
-
-      switch (type) {
-        case 'choice':
-        case 'completion':
-        case 'truefalse':
-          maxScores.value[type] += questionScore
-          if (answers.value[type] && answers.value[type][i] === q.answer) {
-            scores.value[type] += questionScore
-          }
-          break
-        case 'programming':
-          // 编程题每道题10分
-          maxScores.value[type] = 10
-          if (answers.value[type] && answers.value[type][i]?.trim() === q.answer?.trim()) {
-            scores.value[type] = 10
-          }
-          break
-        case 'shortanswer':
-          // 简答题只计算一次总分
-          maxScores.value[type] = questionScore
-          break
-        case 'matching':
-          // 匹配题每道题10分
-          maxScores.value[type] = 10
-          if (isMatchingCorrect(i)) {
-            scores.value[type] = 10
-          }
-          break
-      }
-    })
-  })
 }
 
 // 修改匹配题判断函数
@@ -669,8 +667,55 @@ const getCompletionRate = (type) => {
 
 // 修改 getAccuracyRate 函数
 const getAccuracyRate = (type) => {
-  if (!paper.value?.[type] || !answers.value?.[type] || type === 'shortanswer') return 0
-  return Math.round((getCorrectCount(type) / paper.value[type].length) * 100)
+  if (!paper.value?.[type] || !answers.value?.[type]) return 0
+  
+  const totalQuestions = paper.value[type].length
+  if (totalQuestions === 0) return 0
+  
+  let completedCount = 0
+  let correctCount = 0
+  
+  switch (type) {
+    case 'programming':
+    case 'shortanswer':
+      // 对于编程题和简答题，使用 AI 评分结果
+      paper.value[type].forEach((_, i) => {
+        const answer = answers.value[type][i]
+        if (answer) {
+          completedCount++
+          if (answer.score >= 6) { // 6分以上算正确
+            correctCount++
+          }
+        }
+      })
+      break
+    case 'completion':
+      // 填空题需要完全匹配
+      paper.value[type].forEach((q, i) => {
+        const answer = answers.value[type][i]
+        if (answer && answer.trim() !== '') {
+          completedCount++
+          if (answer.trim() === q.answer.trim()) {
+            correctCount++
+          }
+        }
+      })
+      break
+    default:
+      // 其他题型
+      paper.value[type].forEach((q, i) => {
+        const answer = answers.value[type][i]
+        if (answer !== undefined && answer !== '') {
+          completedCount++
+          if (answer === q.answer) {
+            correctCount++
+          }
+        }
+      })
+  }
+  
+  // 只计算已完成题目的正确率
+  return completedCount > 0 ? Math.round((correctCount / completedCount) * 100) : 0
 }
 
 // 添加代码格式化函数

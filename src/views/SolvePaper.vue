@@ -402,8 +402,16 @@
               </div>
             </div>
           </div>
-          <button class="submit-btn" @click="submitPaper" :disabled="completedCount === 0">
-            {{ t('paper.submit') }}
+          <button 
+            class="submit-btn" 
+            @click="handleSubmit" 
+            :disabled="isSubmitting || completedCount === 0"
+          >
+            <template v-if="isSubmitting">
+              <span class="loading-text">评分中...</span>
+              <span class="loading-dots">...</span>
+            </template>
+            <span v-else>提交试卷</span>
           </button>
         </div>
       </div>
@@ -415,6 +423,7 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { gradePaperAnswers } from '../services/paper'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -423,6 +432,7 @@ const paper = ref(null)
 const timeLeft = ref(0)
 const timer = ref(null)
 const startTime = ref(null)
+const isSubmitting = ref(false)
 
 // 修改初始化答案对象的方式
 const answers = ref({
@@ -492,23 +502,42 @@ const confirmExit = () => {
   }
 }
 
-const submitPaper = () => {
-  // 计算用时（秒）
-  const usedTime = startTime.value ? Math.floor((Date.now() - startTime.value) / 1000) : 0
-  
-  // 确保选择题答案正确保存
-  const formattedAnswers = {
-    ...answers.value,
-    choice: answers.value.choice.map(answer => answer || '')  // 确保未答题时为空字符串
-  }
+const handleSubmit = async () => {
+  try {
+    if (isSubmitting.value) return
+    isSubmitting.value = true
 
-  // 保存答案和用时
-  localStorage.setItem('paperAnswers', JSON.stringify({
-    answers: formattedAnswers,
-    usedTime: usedTime
-  }))
-  
-  router.push('/paper-result')
+    // 计算已用时间
+    const usedTime = Math.floor((Date.now() - startTime.value) / 1000)
+    
+    // 保存答案和用时
+    const answersData = {
+      answers: answers.value,
+      usedTime
+    }
+
+    // 使用 AI 评分
+    const gradingResult = await gradePaperAnswers(paper.value, answers.value)
+    
+    // 合并评分结果到答案数据中
+    answersData.scores = gradingResult.scores
+    answersData.totalScore = gradingResult.totalScore
+    answersData.answers = gradingResult.answers // 包含了 AI 的评分反馈
+    
+    // 保存答案和评分结果到本地存储
+    localStorage.setItem('paperAnswers', JSON.stringify(answersData))
+
+    // 保存当前试卷
+    localStorage.setItem('currentPaper', JSON.stringify(paper.value))
+
+    // 跳转到结果页面
+    router.push('/paper-result')
+  } catch (error) {
+    console.error('Submit error:', error)
+    alert('提交失败，请重试')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 onMounted(() => {
@@ -535,7 +564,7 @@ onMounted(() => {
         timeLeft.value--
         if (timeLeft.value <= 0) {
           clearInterval(timer.value)
-          submitPaper() // 时间到自动提交
+          handleSubmit() // 时间到自动提交
         }
       }, 1000)
     }
@@ -1108,6 +1137,7 @@ const isQuestionAnswered = (type, index) => {
 .submit-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .question-nav {
@@ -1469,5 +1499,22 @@ const isQuestionAnswered = (type, index) => {
 .option-label {
   color: #666;
   margin-right: 8px;
+}
+
+.loading-text {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.loading-dots {
+  display: inline-block;
+  width: 16px;
+  animation: loadingDots 1.4s infinite;
+}
+
+@keyframes loadingDots {
+  0%, 20% { content: '.'; }
+  40%, 60% { content: '..'; }
+  80%, 100% { content: '...'; }
 }
 </style> 

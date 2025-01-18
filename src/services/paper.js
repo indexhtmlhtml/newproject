@@ -242,3 +242,164 @@ export const generatePaper = async (params) => {
     throw error
   }
 }
+
+// 评分函数
+export const gradePaperAnswers = async (paper, answers) => {
+  try {
+    let totalScore = 0;
+    const scores = {
+      choice: 0,
+      programming: 0,
+      completion: 0,
+      truefalse: 0,
+      shortanswer: 0,
+      matching: 0
+    };
+
+    // 评分选择题、判断题等客观题
+    ['choice', 'truefalse', 'completion', 'matching'].forEach(type => {
+      if (paper[type] && answers[type]) {
+        paper[type].forEach((question, index) => {
+          if (answers[type][index] === question.answer) {
+            scores[type] += question.score;
+            totalScore += question.score;
+          }
+        });
+      }
+    });
+
+    // 使用 AI 评分编程题
+    if (paper.programming && answers.programming) {
+      for (let i = 0; i < paper.programming.length; i++) {
+        const question = paper.programming[i];
+        const userAnswer = answers.programming[i];
+        
+        if (!userAnswer) continue;
+
+        const response = await axios.post(`${API_URL}/v1/chat/completions`, {
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `你是一个编程评分助手。请根据以下标准评分：
+              1. 代码功能完整性（50%）：代码是否实现了所需功能
+              2. 代码效率（20%）：时间和空间复杂度是否合理
+              3. 代码规范性（20%）：命名、格式是否规范
+              4. 代码可读性（10%）：代码是否易于理解
+              
+              满分为10分。请直接返回一个 JSON 对象（不要包含任何其他格式或标记），格式如下：
+              {
+                "score": 得分（0-10分）,
+                "feedback": "评分反馈"
+              }`
+            },
+            {
+              role: 'user',
+              content: `
+              题目描述：${question.content}
+              参考答案：${question.answer}
+              学生答案：${userAnswer}
+              题目分值：10分
+              
+              请评分并给出反馈。`
+            }
+          ],
+          temperature: 0.1
+        }, {
+          headers: {
+            'Authorization': `Bearer ${API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        // 尝试清理返回的内容并解析 JSON
+        let content = response.data.choices[0].message.content.trim();
+        // 如果内容被包裹在代码块中，提取出 JSON 部分
+        if (content.startsWith('```')) {
+          content = content.replace(/^```(?:json)?\n|\n```$/g, '');
+        }
+        const result = JSON.parse(content);
+
+        const score = Math.min(Math.max(0, result.score), 10);
+        scores.programming += score;
+        totalScore += score;
+        
+        // 保存AI的评分反馈
+        answers.programming[i] = {
+          code: userAnswer,
+          score: score,
+          feedback: result.feedback
+        };
+      }
+    }
+
+    // 使用 AI 评分简答题
+    if (paper.shortanswer && answers.shortanswer) {
+      for (let i = 0; i < paper.shortanswer.length; i++) {
+        const question = paper.shortanswer[i];
+        const userAnswer = answers.shortanswer[i];
+        
+        if (!userAnswer) continue;
+
+        const response = await axios.post(`${API_URL}/v1/chat/completions`, {
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `你是一个编程简答题评分助手。请根据答案要点评分，并给出得分理由。
+              满分为10分。请直接返回一个 JSON 对象（不要包含任何其他格式或标记），格式如下：
+              {
+                "score": 得分（0-10分）,
+                "feedback": "评分反馈"
+              }`
+            },
+            {
+              role: 'user',
+              content: `
+              题目：${question.content}
+              参考答案要点：${question.answer}
+              学生答案：${userAnswer}
+              题目分值：10分
+              
+              请评分并给出反馈。`
+            }
+          ],
+          temperature: 0.1
+        }, {
+          headers: {
+            'Authorization': `Bearer ${API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        // 尝试清理返回的内容并解析 JSON
+        let content = response.data.choices[0].message.content.trim();
+        // 如果内容被包裹在代码块中，提取出 JSON 部分
+        if (content.startsWith('```')) {
+          content = content.replace(/^```(?:json)?\n|\n```$/g, '');
+        }
+        const result = JSON.parse(content);
+
+        const score = Math.min(Math.max(0, result.score), 10);
+        scores.shortanswer += score;
+        totalScore += score;
+        
+        // 保存AI的评分反馈
+        answers.shortanswer[i] = {
+          answer: userAnswer,
+          score: score,
+          feedback: result.feedback
+        };
+      }
+    }
+
+    return {
+      totalScore,
+      scores,
+      answers // 包含了AI的评分反馈
+    };
+  } catch (error) {
+    console.error('Error grading paper:', error);
+    throw error;
+  }
+}

@@ -33,6 +33,33 @@
     "correctAnswer": "正确答案",
     "totalScore": "总分",
     "defaultTitle": "编程能力测试",
+    "generateError": "生成试卷失败，请重试",
+    "domains": {
+      "frontend": "前端开发",
+      "backend": "后端开发",
+      "algorithm": "算法与数据结构",
+      "database": "数据库",
+      "network": "计算机网络"
+    },
+    "domainError": "所选题型与领域不匹配"
+  },
+  "generatePaper": {
+    "title": "生成试卷",
+    "difficulty": "难度选择",
+    "easy": "简单",
+    "medium": "中等",
+    "hard": "困难",
+    "domain": "题目领域",
+    "domains": {
+      "frontend": "前端开发",
+      "backend": "后端开发",
+      "algorithm": "算法与数据结构",
+      "database": "数据库",
+      "network": "计算机网络"
+    },
+    "questionCounts": "题目数量",
+    "generate": "生成试卷",
+    "generating": "生成中...",
     "generateError": "生成试卷失败，请重试"
   }
 } 

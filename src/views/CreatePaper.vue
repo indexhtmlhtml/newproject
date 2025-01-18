@@ -92,12 +92,12 @@
           </div>
 
           <!-- 难度选择 -->
-          <div class="difficulty-section">
+          <div class="setting-group">
             <div class="section-title">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12 2L4 8v12h16V8l-8-6zm0 2.8L18 10v8H6v-8l6-5.2z"/>
+                <path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
               </svg>
-              <h3>{{ t('paper.difficulty') }}</h3>
+              <span>难度选择</span>
             </div>
 
             <div class="difficulty-options">
@@ -155,6 +155,34 @@
               step="10"
               class="score-input"
             >
+          </div>
+
+          <!-- 领域选择 -->
+          <div class="setting-group">
+            <div class="section-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              </svg>
+              <span>题目领域（可多选）</span>
+            </div>
+            <div class="domain-selector">
+              <button
+                v-for="item in domains"
+                :key="item.value"
+                :class="['domain-btn', { active: selectedDomains.includes(item.value) }]"
+                @click="toggleDomain(item.value)"
+              >
+                <div class="domain-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" :d="item.icon"/>
+                  </svg>
+                </div>
+                <span class="domain-label">{{ item.label }}</span>
+              </button>
+            </div>
+            <div class="domain-hint" v-if="selectedDomains.length > 0">
+              已选择：{{ selectedDomains.map(d => domains.find(item => item.value === d)?.label).join('、') }}
+            </div>
           </div>
 
           <!-- 生成按钮 -->
@@ -435,11 +463,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLanguageStore } from '../stores/language'
 import { useI18n } from 'vue-i18n'
-import { generatePaper as generatePaperAPI } from '../services/paper'
+import { generatePaper, savePaperToHistory } from '../services/paper'
 import { downloadPaperAsWord } from '../utils/download'
 import PaperHistory from '@/components/PaperHistory.vue'
 import { eventBus } from '@/utils/eventBus'
@@ -540,13 +568,67 @@ const handleTypeChange = (type) => {
   }
 }
 
-// 验证配置是否有效
+// 修改领域选择的数据结构，增加更多领域
+const domains = [
+  { 
+    value: 'frontend', 
+    label: '前端开发',
+    icon: 'M12 18.178l-4.62-1.256-.328-3.544h2.27l.158 1.844 2.52.667 2.52-.667.26-2.866H6.96l-.635-6.678h11.35l-.227 2.21H8.822l.204 2.256h8.217l-.624 6.778L12 18.178z'
+  },
+  { 
+    value: 'backend', 
+    label: '后端开发',
+    icon: 'M20 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2zM6.5 17.5l3-3l2 2l3-3l2 2'
+  },
+  { 
+    value: 'algorithm', 
+    label: '算法与数据结构',
+    icon: 'M15 4v2h3v12h-3v2h5V4zM4 4v16h5v-2H6V6h3V4z'
+  },
+  { 
+    value: 'database', 
+    label: '数据库',
+    icon: 'M12 3C7.58 3 4 4.79 4 7s3.58 4 8 4 8-1.79 8-4-3.58-4-8-4zM4 9v3c0 2.21 3.58 4 8 4s8-1.79 8-4V9c0 2.21-3.58 4-8 4s-8-1.79-8-4z'
+  },
+  { 
+    value: 'network', 
+    label: '计算机网络',
+    icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z'
+  },
+  {
+    value: 'security',
+    label: '网络安全',
+    icon: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z'
+  },
+  {
+    value: 'devops',
+    label: 'DevOps',
+    icon: 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36l-1.42 1.42C20.04 12.36 20 12.69 20 13c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8c2.21 0 4.21.89 5.65 2.33L19 2.71C17.01 1.04 14.61 0 12 0z'
+  },
+  {
+    value: 'mobile',
+    label: '移动开发',
+    icon: 'M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z'
+  }
+]
+
+const selectedDomains = ref(['frontend']) // 新的多选模式
+
+// 修改 isValid 计算属性
 const isValid = computed(() => {
-  const totalQuestions = Object.values(counts.value).reduce((sum, count) => sum + count, 0)
-  return totalQuestions > 0 && totalQuestions <= 20
+  return (
+    // 确保至少选择了一个题型且数量大于0
+    Object.values(counts.value).some(count => count > 0) &&
+    // 确保至少选择了一个领域
+    selectedDomains.value.length > 0 &&
+    // 确保总分在合理范围内
+    totalScore.value >= 60 && totalScore.value <= 150 &&
+    // 确保选择了难度
+    selectedDifficulty.value
+  )
 })
 
-// 修改生成试卷的函数
+// 修改 handleGeneratePaper 函数
 const handleGeneratePaper = async () => {
   if (!isValid.value || isGenerating.value) return
   
@@ -564,19 +646,23 @@ const handleGeneratePaper = async () => {
       duration: duration.value,
       totalScore: totalScore.value,
       difficulty: selectedDifficulty.value,
+      domains: selectedDomains.value,
       counts: counts.value,
       language: languageStore.currentLanguage
     }
 
-    const result = await generatePaperAPI(params)
+    const result = await generatePaper(params)
+    
     paper.value = {
       ...result,
       title: result.title || t('paper.defaultTitle'),
       duration: duration.value,
       totalScore: totalScore.value,
-      difficulty: selectedDifficulty.value
+      difficulty: selectedDifficulty.value,
+      domains: selectedDomains.value
     }
-    // 触发试卷生成事件
+
+    await savePaperToHistory(paper.value)
     eventBus.emit('paperGenerated')
   } catch (error) {
     console.error('Failed to generate paper:', error)
@@ -645,6 +731,23 @@ const vClickOutside = {
 // 注册自定义指令
 const directives = {
   'click-outside': vClickOutside
+}
+
+// 当领域改变时重置不兼容的题型
+watch(selectedDomains, (newDomains) => {
+  if (newDomains.length === 0) {
+    selectedDomains.value = ['frontend'] // 默认至少选择一个领域
+  }
+})
+
+// 处理领域选择
+const toggleDomain = (domainValue) => {
+  const index = selectedDomains.value.indexOf(domainValue)
+  if (index === -1) {
+    selectedDomains.value.push(domainValue)
+  } else {
+    selectedDomains.value.splice(index, 1)
+  }
 }
 </script>
 
@@ -833,7 +936,7 @@ const directives = {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-  color: #666;
+  color: #333;
 }
 
 .config-section {
@@ -1509,5 +1612,103 @@ const directives = {
 
 .history-section {
   margin-bottom: 30px;
+}
+
+/* 领域选择器样式 */
+.domain-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.domain-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 2px solid #eee;
+  border-radius: 12px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  height: 60px;
+}
+
+.domain-btn:hover {
+  border-color: var(--vt-c-primary);
+  background: rgba(var(--vt-c-primary-rgb), 0.05);
+  transform: translateY(-2px);
+}
+
+.domain-btn.active {
+  border-color: var(--vt-c-primary);
+  background: var(--vt-c-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(var(--vt-c-primary-rgb), 0.2);
+}
+
+.domain-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.domain-label {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  flex-grow: 1;
+}
+
+.domain-hint {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #666;
+  padding: 12px;
+  background: #f5f7ff;
+  border-radius: 8px;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .domain-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .domain-btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.section-title svg {
+  color: var(--vt-c-primary);
+}
+
+.section-title span {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.setting-group {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 </style>

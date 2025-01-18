@@ -9,19 +9,19 @@
       <button @click="router.push('/problems')">返回题目列表</button>
     </div>
     <template v-else>
-      <header class="header">
-        <div class="header-content">
-          <div class="left-section">
-            <button class="back-btn" @click="router.back()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-              </svg>
-            </button>
-          </div>
+    <header class="header">
+      <div class="header-content">
+        <div class="left-section">
+          <button class="back-btn" @click="router.back()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+          </button>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <main class="main-content">
+    <main class="main-content">
         <!-- 左侧面板：题目描述 -->
         <div class="description-panel" :class="{ 'panel-collapsed': !showDescription }">
           <div class="panel-header">
@@ -37,7 +37,7 @@
           <!-- 题目描述内容 -->
           <div class="problem-info">
             <div class="problem-header">
-              <h1 class="problem-title">{{ problem?.id }}. {{ problem?.title }}</h1>
+              <h1 class="problem-title"> {{ problem?.title }}</h1>
               <div class="problem-tags">
                 <span :class="['difficulty', problem?.difficulty?.toLowerCase()]">
                   {{ problem?.difficulty }}
@@ -54,7 +54,7 @@
               </div>
               <div class="stat-item">
                 <span class="stat-label">提交次数</span>
-                <span class="stat-value">{{ problem?.submissions }}</span>
+                <span class="stat-value">{{ problem?.totalSubmissions }}</span>
               </div>
             </div>
 
@@ -67,13 +67,13 @@
                    :key="index" 
                    class="example">
                 <p class="example-title">示例 {{ index + 1 }}：</p>
-                <div class="example-content">
+              <div class="example-content">
                   <p><strong>输入：</strong>{{ example.input }}</p>
                   <p><strong>输出：</strong>{{ example.output }}</p>
                   <p v-if="example.explanation"><strong>解释：</strong>{{ example.explanation }}</p>
                 </div>
+                </div>
               </div>
-            </div>
 
             <div class="constraints">
               <h3>提示：</h3>
@@ -86,28 +86,38 @@
         <div class="editor-panel" :class="{ 'panel-expanded': !showDescription }">
           <div class="panel-header">
             <div class="editor-controls">
-              <select v-model="selectedLanguage" class="language-select">
-                <option value="cpp">C++</option>
+            <select v-model="selectedLanguage" class="language-select">
+              <option value="cpp">C++</option>
                 <option value="java">Java</option>
                 <option value="python">Python</option>
-              </select>
-              <button class="solution-btn" @click="openSolution">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
-                </svg>
-                查看题解
+            </select>
+            <div class="editor-actions">
+                <button 
+                  class="action-btn template-btn" 
+                  @click="generateTemplateCode"
+                  :disabled="isGenerating"
+                  :style="{
+    backgroundColor: isGenerating ? 'gray' : 'white',
+    color: isGenerating ? 'lightgray' : 'black'
+  }"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
+                  </svg>
+                  {{ isGenerating ? '生成中...' : '生成模板' }}
               </button>
-              <button class="reset-btn" @click="resetCode">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                </svg>
-                重置
+                <button class="action-btn solution-btn" @click="openSolution">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
+                  </svg>
+                  查看题解
               </button>
             </div>
           </div>
+          </div>
 
           <div class="editor-container">
-            <textarea 
+            <textarea
               v-model="code"
               class="code-editor"
               @input="handleCodeChange"
@@ -129,8 +139,8 @@
             >
               提交
             </button>
-          </div>
-        </div>
+              </div>
+              </div>
 
         <!-- 题解模态框 -->
         <div v-if="showSolution" class="solution-modal">
@@ -143,22 +153,22 @@
                   <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                 </svg>
               </button>
-            </div>
+                </div>
             
             <div class="modal-content">
               <div v-if="loadingSolution" class="loading-state">
                 <div class="spinner"></div>
                 <p>正在生成题解...</p>
-              </div>
+                </div>
               <div v-else-if="solutionError" class="error-state">
                 <p>{{ solutionError }}</p>
                 <button @click="loadSolution">重试</button>
-              </div>
+                </div>
               <div v-else-if="solution" class="solution-content">
                 <div class="solution-section">
                   <h3>解题思路</h3>
                   <div class="solution-text" v-html="solution.approach"></div>
-                </div>
+              </div>
                 <div class="solution-section">
                   <h3>代码实现</h3>
                   <div class="solution-code">
@@ -169,9 +179,9 @@
                           <path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
                         </svg>
                       </button>
-                    </div>
+            </div>
                     <pre><code>{{ solution.code }}</code></pre>
-                  </div>
+          </div>
                 </div>
                 <div class="solution-section">
                   <h3>复杂度分析</h3>
@@ -199,8 +209,8 @@
             </div>
             <div class="modal-content" v-html="submissionModal.content"></div>
           </div>
-        </div>
-      </main>
+      </div>
+    </main>
     </template>
   </div>
 </template>
@@ -241,26 +251,62 @@ const submissionModal = ref({
   title: '',
   content: ''
 })
+const isGenerating = ref(false)
 
-const codeTemplates = {
-  cpp: `class Solution {
-public:
-    vector<int> twoSum(vector<int>& nums, int target) {
-        
+const generateTemplate = async (problem, language) => {
+  try {
+    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+      model: "deepseek-coder",
+      messages: [
+        {
+          role: "system",
+          content: `你是一个编程助手。请生成简洁的代码模板，只包含：
+            1. 必要的函数声明
+            2. 基本的参数和返回类型
+            3. 不要包含任何实现逻辑
+            4. 模板包含注释，并指出哪一部分是待实现的
+            `
+        },
+        {
+          role: "user",
+          content: `根据题目"${problem.title}"生成${language}的最简代码模板。
+            输入示例：${problem.examples?.[0]?.input || ''}
+            输出示例：${problem.examples?.[0]?.output || ''}`
+        }
+      ],
+      temperature: 0.1,
+      max_tokens: 150
+    }, {
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    return response.data.choices[0].message.content.trim()
+  } catch (error) {
+    console.error('Failed to generate template:', error)
+    // 简化基础模板
+    const basicTemplates = {
+      cpp: 'class Solution {\npublic:\n    void solve() {\n    }\n};',
+      java: 'class Solution {\n    public void solve() {\n    }\n}',
+      python: 'def solve():\n    pass'
     }
-};`,
-  java: `class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        
-    }
-}`,
-  python: `class Solution:
-    def twoSum(self, nums: List[int], target: int) -> List[int]:
-        `
+    return basicTemplates[language] || ''
+  }
 }
 
-const initCode = () => {
-  code.value = codeTemplates[selectedLanguage.value]
+const generateTemplateCode = async () => {
+  if (!problem.value || isGenerating.value) return
+  
+  try {
+    isGenerating.value = true
+    code.value = await generateTemplate(problem.value, selectedLanguage.value)
+  } catch (error) {
+    console.error('Failed to generate template:', error)
+  } finally {
+    isGenerating.value = false
+  }
 }
 
 const loadAnalysisData = async () => {
@@ -502,6 +548,64 @@ const copyCode = async (code) => {
   }
 }
 
+// 生成随机统计数据的辅助函数
+const generateRandomStats = (difficulty) => {
+  // 根据难度设置通过率范围
+  let acceptanceRateRange;
+  switch (difficulty?.toLowerCase()) {
+    case 'easy':
+      acceptanceRateRange = { min: 65, max: 85 }; // 简单题 65%-85%
+      break;
+    case 'medium':
+      acceptanceRateRange = { min: 45, max: 65 }; // 中等题 45%-65%
+      break;
+    case 'hard':
+      acceptanceRateRange = { min: 25, max: 45 }; // 困难题 25%-45%
+      break;
+    default:
+      acceptanceRateRange = { min: 45, max: 65 }; // 默认中等难度
+  }
+
+  // 生成提交次数，范围根据难度调整
+  const submissionRange = {
+    easy: { min: 5000, max: 20000 },
+    medium: { min: 3000, max: 15000 },
+    hard: { min: 1000, max: 10000 }
+  };
+  
+  const range = submissionRange[difficulty?.toLowerCase()] || submissionRange.medium;
+  const totalSubmissions = Math.floor(Math.random() * (range.max - range.min)) + range.min;
+  
+  // 生成通过率
+  const acceptanceRate = (
+    Math.random() * (acceptanceRateRange.max - acceptanceRateRange.min) + 
+    acceptanceRateRange.min
+  ).toFixed(1);
+  
+  const acceptedSubmissions = Math.floor(totalSubmissions * (parseFloat(acceptanceRate) / 100))
+  
+  return {
+    totalSubmissions,
+    acceptedSubmissions,
+    acceptanceRate: parseFloat(acceptanceRate)
+  }
+}
+
+// 生成随机提交历史
+const generateRandomSubmissions = () => {
+  const count = Math.floor(Math.random() * 5) + 3 // 3-7条记录
+  const statuses = ['Accepted', 'Wrong Answer', 'Time Limit Exceeded', 'Runtime Error']
+  const now = Date.now()
+  
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    timestamp: now - (Math.random() * 7 * 24 * 3600 * 1000), // 最近7天内
+    status: statuses[Math.floor(Math.random() * statuses.length)],
+    runtime: Math.floor(Math.random() * 200) + 50, // 50-250ms
+    memory: (Math.random() * 5 + 5).toFixed(1) // 5-10MB
+  })).sort((a, b) => b.timestamp - a.timestamp)
+}
+
 onMounted(async () => {
   try {
     loading.value = true
@@ -512,24 +616,46 @@ onMounted(async () => {
     }
     
     const storeProblem = problemsStore.getCurrentProblem()
+    // 生成随机统计数据
+    const randomStats = generateRandomStats(storeProblem.difficulty)
+    
     if (storeProblem && storeProblem.id === id) {
-      problem.value = storeProblem
+      problem.value = {
+        ...storeProblem,
+        acceptanceRate: storeProblem.acceptanceRate || randomStats.acceptanceRate,
+        totalSubmissions: storeProblem.totalSubmissions || randomStats.totalSubmissions,
+        acceptedSubmissions: storeProblem.acceptedSubmissions || randomStats.acceptedSubmissions
+      }
     } else {
       const response = await getProblem(id)
       if (response.data) {
         const problemData = {
           ...response.data,
-          difficulty: response.data.difficulty || 'Medium',
-          acceptanceRate: response.data.acceptanceRate || 0,
-          submissions: response.data.submissions || 0
+          difficulty: response.data.difficulty || 'Medium'
         }
+        // 根据题目难度生成随机统计数据
+        const randomStats = generateRandomStats(problemData.difficulty)
+        problemData.acceptanceRate = randomStats.acceptanceRate
+        problemData.totalSubmissions = randomStats.totalSubmissions
+        problemData.acceptedSubmissions = randomStats.acceptedSubmissions
+        
         problem.value = problemData
         problemsStore.setCurrentProblem(problemData)
       } else {
         throw new Error('题目不存在')
       }
     }
-    initCode()
+    
+    // 生成随机提交历史
+    submissions.value = generateRandomSubmissions()
+    
+    // 更新问题统计数据
+    problemStats.value = {
+      totalSubmissions: problem.value.totalSubmissions,
+      acceptedSubmissions: problem.value.acceptedSubmissions,
+      acceptanceRate: problem.value.acceptanceRate
+    }
+    
   } catch (error) {
     console.error('Failed to fetch problem:', error)
     error.value = error.message || '加载题目失败'
@@ -701,8 +827,10 @@ const closeSolution = () => {
 
 .editor-controls {
   display: flex;
-  gap: 16px;
+  justify-content: space-between;
   align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .language-select {
@@ -1096,11 +1224,11 @@ const closeSolution = () => {
 .stat-value {
   font-size: 16px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--vt-c-text-primary);
 }
 
 .stat-value.success {
-  color: #67c23a;
+  color: var(--vt-c-accent);
 }
 
 .problem-content {
@@ -1307,7 +1435,7 @@ const closeSolution = () => {
   }
 
   .run-btn,
-  .submit-btn {
+.submit-btn {
     width: 100%;
     justify-content: center;
   }
@@ -1353,7 +1481,7 @@ const closeSolution = () => {
   }
   
   .panel-collapsed {
-    width: 100%;
+  width: 100%;
     height: 48px;
   }
 
@@ -1632,5 +1760,128 @@ const closeSolution = () => {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: modalSlideIn 0.3s ease;
+}
+
+.template-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--vt-c-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.template-btn:hover:not(:disabled) {
+  background: var(--vt-c-secondary);
+  transform: translateY(-1px);
+}
+
+.template-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.template-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.editor-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.primary-btn {
+  background: var(--vt-c-primary);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: var(--vt-c-secondary);
+  transform: translateY(-1px);
+}
+
+.primary-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.primary-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.solution-btn {
+  color: var(--vt-c-text-light-2);
+  padding: 8px 16px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.solution-btn:hover {
+  color: var(--vt-c-primary);
+  background: rgba(79, 110, 247, 0.1);
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.template-btn {
+  background: var(--vt-c-primary);
+  color: white;
+}
+
+.template-btn:hover:not(:disabled) {
+  background: var(--vt-c-secondary);
+  transform: translateY(-1px);
+}
+
+.template-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.solution-btn {
+  background: transparent;
+  color: var(--vt-c-text-light-2);
+}
+
+.solution-btn:hover {
+  color: var(--vt-c-primary);
+  background: rgba(79, 110, 247, 0.1);
 }
 </style> 

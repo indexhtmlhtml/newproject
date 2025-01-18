@@ -62,8 +62,8 @@
               <span class="difficulty-tag" :class="problem.difficulty">
                 {{ t(`problems.${problem.difficulty}`) }}
               </span>
-              <span class="success-rate">
-                {{ t('problems.successRate', { rate: problem.successRate }) }}
+              <span class="acceptance-rate">
+                通过率: {{ problem.acceptanceRate }}%
               </span>
             </div>
           </div>
@@ -328,6 +328,58 @@ const deleteProblem = (problemId) => {
   if (confirm(t('problems.confirmDelete'))) {
     problemsStore.deleteProblem(category, problemId)
     problems.value = problemsStore.getProblemsByCategory(category)
+  }
+}
+
+// 生成随机统计数据的辅助函数
+const generateRandomStats = (difficulty) => {
+  // 根据难度设置通过率范围
+  let acceptanceRateRange;
+  switch (difficulty?.toLowerCase()) {
+    case 'easy':
+      acceptanceRateRange = { min: 65, max: 85 }; // 简单题 65%-85%
+      break;
+    case 'medium':
+      acceptanceRateRange = { min: 45, max: 65 }; // 中等题 45%-65%
+      break;
+    case 'hard':
+      acceptanceRateRange = { min: 25, max: 45 }; // 困难题 25%-45%
+      break;
+    default:
+      acceptanceRateRange = { min: 45, max: 65 }; // 默认中等难度
+  }
+  
+  // 生成通过率
+  const acceptanceRate = (
+    Math.random() * (acceptanceRateRange.max - acceptanceRateRange.min) + 
+    acceptanceRateRange.min
+  ).toFixed(1);
+  
+  return parseFloat(acceptanceRate);
+}
+
+const loadProblems = async () => {
+  try {
+    // 模拟从API获取题目列表
+    const problems = [
+      {
+        id: '1',
+        title: '两数之和',
+        difficulty: 'Easy',
+        description: '给定一个整数数组 nums 和一个目标值 target，请你在该数组中找出和为目标值的那两个整数，并返回他们的数组下标。'
+      },
+      // ... other problems
+    ]
+
+    // 为每个题目添加随机统计数据
+    const problemsWithStats = problems.map(problem => ({
+      ...problem,
+      acceptanceRate: generateRandomStats(problem.difficulty)
+    }))
+
+    problemsStore.addProblems(category.value, problemsWithStats)
+  } catch (error) {
+    console.error('Failed to load problems:', error)
   }
 }
 
@@ -1016,5 +1068,17 @@ onUnmounted(() => {
   .solve-btn svg {
     margin: 0;
   }
+}
+
+.acceptance-rate {
+  font-size: 14px;
+  color: var(--vt-c-text-light-2);
+  margin-left: 12px;
+}
+
+.acceptance-rate::before {
+  content: '•';
+  margin-right: 8px;
+  color: var(--vt-c-divider-light-1);
 }
 </style> 

@@ -13,6 +13,15 @@ export const useProblemsStore = defineStore({
         console.error('Invalid problem data:', problem)
         return
       }
+      if (!problem.acceptanceRate) {
+        const acceptanceRateRange = {
+          easy: { min: 65, max: 85 },
+          medium: { min: 45, max: 65 },
+          hard: { min: 25, max: 45 }
+        }
+        const range = acceptanceRateRange[problem.difficulty?.toLowerCase()] || acceptanceRateRange.medium
+        problem.acceptanceRate = (Math.random() * (range.max - range.min) + range.min).toFixed(1)
+      }
       this.currentProblem = problem
     },
     

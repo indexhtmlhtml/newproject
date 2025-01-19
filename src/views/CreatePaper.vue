@@ -4,7 +4,7 @@
     <nav class="nav-bar">
       <div class="nav-content">
         <div class="nav-left">
-          <button class="nav-back" @click="router.back()">
+          <button class="nav-back" @click="handleBack">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
               <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
             </svg>
@@ -116,69 +116,26 @@
             </div>
           </div>
 
-          <!-- 时长设置 -->
-          <div class="duration-section">
-            <div class="section-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8s8 3.58 8 8s-3.58 8-8 8zm.5-13H11v6l5.25 3.15l.75-1.23l-4.5-2.67z"/>
-              </svg>
-              <h3>{{ t('paper.duration') }}</h3>
-            </div>
-
-            <div class="duration-control">
-              <input 
-                type="range" 
-                v-model="duration" 
-                min="30" 
-                max="180" 
-                step="30"
-              >
-              <span class="duration-value">{{ duration }} min</span>
-            </div>
-          </div>
-
-          <!-- 总分设置 -->
-          <div class="score-section">
-            <div class="section-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
-                <path fill="currentColor" d="M11 7h2v10h-2zm-4 4h10v2H7z"/>
-              </svg>
-              <h3>{{ t('paper.totalScore') }}</h3>
-            </div>
-
-            <input 
-              type="number" 
-              v-model="totalScore" 
-              min="50" 
-              max="150" 
-              step="10"
-              class="score-input"
-            >
-          </div>
-
           <!-- 领域选择 -->
           <div class="setting-group">
             <div class="section-title">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93z"/>
               </svg>
               <span>题目领域（可多选）</span>
             </div>
-            <div class="domain-selector">
-              <button
+            <div class="domain-list">
+              <div
                 v-for="item in domains"
                 :key="item.value"
-                :class="['domain-btn', { active: selectedDomains.includes(item.value) }]"
+                :class="['domain-item', { active: selectedDomains.includes(item.value) }]"
                 @click="toggleDomain(item.value)"
               >
-                <div class="domain-icon">
-                  <svg viewBox="0 0 24 24">
-                    <path fill="currentColor" :d="item.icon"/>
-                  </svg>
+                <div class="domain-checkbox">
+                  <span v-show="selectedDomains.includes(item.value)" class="checkmark">✓</span>
                 </div>
                 <span class="domain-label">{{ item.label }}</span>
-              </button>
+              </div>
             </div>
             <div class="domain-hint" v-if="selectedDomains.length > 0">
               已选择：{{ selectedDomains.map(d => domains.find(item => item.value === d)?.label).join('、') }}
@@ -208,24 +165,25 @@
           <div class="preview-header">
             <h2>{{ t('paper.preview') }}</h2>
             <div class="preview-actions">
-              <button class="start-solve-btn" @click="startSolving" v-if="!isGenerating">
+              <button 
+                class="start-solve-btn" 
+                @click="startSolving" 
+                v-if="!isGenerating"
+              >
                 <div class="btn-content">
                   <div class="btn-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                       <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5l-6 4.5z"/>
                     </svg>
                   </div>
-                  <div class="btn-text">
-                    <span class="primary-text">开始答题</span>
-                    <span class="secondary-text">{{ duration }}分钟</span>
-                  </div>
+                  <span class="btn-text">开始做题</span>
                 </div>
               </button>
               <button class="download-btn" @click="downloadPaper">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
                 </svg>
-                {{ t('paper.download') }}
+                下载试卷
               </button>
             </div>
           </div>
@@ -507,8 +465,6 @@ const difficulties = [
 ]
 
 const selectedDifficulty = ref('medium')
-const duration = ref(90)
-const totalScore = ref(100)
 const isGenerating = ref(false)
 const generatingStatus = ref('')
 const generatingSteps = [
@@ -617,13 +573,8 @@ const selectedDomains = ref(['frontend']) // 新的多选模式
 // 修改 isValid 计算属性
 const isValid = computed(() => {
   return (
-    // 确保至少选择了一个题型且数量大于0
     Object.values(counts.value).some(count => count > 0) &&
-    // 确保至少选择了一个领域
     selectedDomains.value.length > 0 &&
-    // 确保总分在合理范围内
-    totalScore.value >= 60 && totalScore.value <= 150 &&
-    // 确保选择了难度
     selectedDifficulty.value
   )
 })
@@ -643,12 +594,10 @@ const handleGeneratePaper = async () => {
 
     const params = {
       title: '',
-      duration: duration.value,
-      totalScore: totalScore.value,
       difficulty: selectedDifficulty.value,
       domains: selectedDomains.value,
       counts: counts.value,
-      language: languageStore.currentLanguage
+      language: 'zh' // 强制使用中文
     }
 
     const result = await generatePaper(params)
@@ -656,8 +605,6 @@ const handleGeneratePaper = async () => {
     paper.value = {
       ...result,
       title: result.title || t('paper.defaultTitle'),
-      duration: duration.value,
-      totalScore: totalScore.value,
       difficulty: selectedDifficulty.value,
       domains: selectedDomains.value
     }
@@ -683,11 +630,12 @@ const startSolving = () => {
     // 保存试卷数据到 localStorage
     localStorage.setItem('currentPaper', JSON.stringify({
       ...paper.value,
-      duration: duration.value,
-      totalScore: totalScore.value
     }))
     // 跳转到答题页面
-    router.push('/solve-paper')
+    router.push({
+      path: '/solve-paper',
+      replace: true
+    })
   }
 }
 
@@ -748,6 +696,14 @@ const toggleDomain = (domainValue) => {
   } else {
     selectedDomains.value.splice(index, 1)
   }
+}
+
+// 修改返回按钮的处理函数
+const handleBack = () => {
+  router.push({
+    path: '/home',
+    replace: true
+  })
 }
 </script>
 
@@ -921,6 +877,7 @@ const toggleDomain = (domainValue) => {
   display: grid;
   grid-template-columns: 400px 1fr;
   gap: 32px;
+  align-items: start;
 }
 
 .section-header {
@@ -935,8 +892,10 @@ const toggleDomain = (domainValue) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   color: #333;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
 }
 
 .config-section {
@@ -944,6 +903,31 @@ const toggleDomain = (domainValue) => {
   padding: 24px;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  max-width: 480px;
+  margin: 0 auto;
+  position: sticky;
+  top: 84px; /* nav-bar height (60px) + padding */
+  height: calc(100vh - 108px); /* 100vh - nav-bar height - padding */
+  overflow-y: auto;
+}
+
+/* 添加滚动条样式 */
+.config-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.config-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.config-section::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.config-section::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .type-grid {
@@ -980,10 +964,12 @@ const toggleDomain = (domainValue) => {
 .difficulty-options {
   display: flex;
   gap: 12px;
+  margin-top: 16px;
 }
 
 .difficulty-option {
   flex: 1;
+  position: relative;
 }
 
 .difficulty-option input[type="radio"] {
@@ -992,32 +978,37 @@ const toggleDomain = (domainValue) => {
 
 .difficulty-option span {
   display: block;
-  padding: 8px;
+  padding: 12px;
   text-align: center;
-  background: #f5f7ff;
+  background: white;
+  border: 2px solid #eee;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-weight: 500;
+  color: #333;
 }
 
 .difficulty-option input[type="radio"]:checked + span {
-  background: #4F6EF7;
-  color: white;
+  background: rgba(var(--vt-c-primary-rgb), 0.1);
+  color: var(--vt-c-primary);
+  border-color: var(--vt-c-primary);
+  box-shadow: 0 2px 8px rgba(var(--vt-c-primary-rgb), 0.2);
+  transform: translateY(-1px);
+  font-weight: 600;
 }
 
-.duration-control {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.duration-control input[type="range"] {
-  flex: 1;
+.difficulty-option:hover span {
+  background: rgba(var(--vt-c-primary-rgb), 0.05);
+  border-color: var(--vt-c-primary);
+  transform: translateY(-1px);
 }
 
 .generate-btn {
+  margin-top: 32px;
+  margin-bottom: 24px;
   width: 100%;
-  padding: 12px;
+  padding: 16px;
   background: #4F6EF7;
   color: white;
   border: none;
@@ -1026,6 +1017,8 @@ const toggleDomain = (domainValue) => {
   font-size: 16px;
   transition: all 0.3s ease;
   overflow: hidden;
+  font-weight: 500;
+  letter-spacing: 1px;
 }
 
 .generate-btn:hover:not(:disabled) {
@@ -1048,10 +1041,30 @@ const toggleDomain = (domainValue) => {
 .preview-section {
   padding: 24px;
   background: #f8f9fa;
-  height: 800px;
+  height: calc(100vh - 108px);
   overflow-y: auto;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+/* 添加预览区滚动条样式 */
+.preview-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.preview-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.preview-section::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.preview-section::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .loading-spinner {
@@ -1069,13 +1082,32 @@ const toggleDomain = (domainValue) => {
 }
 
 @media (max-width: 768px) {
-  .paper-config {
+  .paper-container {
     grid-template-columns: 1fr;
+    gap: 24px;
   }
   
   .config-section {
-    border-right: none;
-    border-bottom: 1px solid #eee;
+    max-width: 100%;
+    position: relative;
+    top: 0;
+    height: auto;
+    overflow-y: visible;
+  }
+  
+  .preview-section {
+    height: auto;
+    min-height: 500px;
+  }
+}
+
+@media (max-width: 480px) {
+  .domain-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .difficulty-options {
+    flex-direction: column;
   }
 }
 
@@ -1212,53 +1244,44 @@ const toggleDomain = (domainValue) => {
 .start-solve-btn {
   display: flex;
   align-items: center;
-  padding: 16px 32px;
-  background: #1a73e8;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #4F6EF7;
+  color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(26, 115, 232, 0.2);
+  transition: all 0.3s ease;
+  font-weight: 500;
+  min-width: 120px;
 }
 
 .start-solve-btn:hover {
-  background: #1557b0;
+  background: #3D5CE5;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(26, 115, 232, 0.3);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.2);
 }
 
 .btn-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
 }
 
 .btn-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  color: white;
+  width: 24px;
+  height: 24px;
 }
 
 .btn-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  color: white;
-}
-
-.primary-text {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.secondary-text {
   font-size: 14px;
-  opacity: 0.8;
+  font-weight: 500;
+  color: white;
 }
 
 .download-btn {
@@ -1614,56 +1637,88 @@ const toggleDomain = (domainValue) => {
   margin-bottom: 30px;
 }
 
-/* 领域选择器样式 */
-.domain-selector {
+/* 新增多选列表样式 */
+.domain-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+  padding: 4px;
+  margin-bottom: 12px;
 }
 
-.domain-btn {
+.domain-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
-  border: 2px solid #eee;
-  border-radius: 12px;
+  gap: 12px;
+  padding: 12px 16px;
   background: white;
-  color: #666;
+  border: 2px solid #eee;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 140px;
-  height: 60px;
+  user-select: none;
+  min-height: 48px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
 }
 
-.domain-btn:hover {
+.domain-item:hover {
   border-color: var(--vt-c-primary);
   background: rgba(var(--vt-c-primary-rgb), 0.05);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
-.domain-btn.active {
+.domain-item.active {
   border-color: var(--vt-c-primary);
-  background: var(--vt-c-primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(var(--vt-c-primary-rgb), 0.2);
+  background: rgba(var(--vt-c-primary-rgb), 0.05);
+  font-weight: 500;
 }
 
-.domain-icon {
-  width: 28px;
-  height: 28px;
+.domain-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+  background: white;
   flex-shrink: 0;
+  position: relative;
+}
+
+.domain-item.active .domain-checkbox {
+  border-color: var(--vt-c-primary);
+  background: white;
+  box-shadow: 0 2px 4px rgba(var(--vt-c-primary-rgb), 0.2);
+}
+
+.checkmark {
+  color: var(--vt-c-primary);
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  transform: translateY(-2px);
+  user-select: none;
 }
 
 .domain-label {
   font-size: 14px;
-  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
   text-align: left;
-  flex-grow: 1;
+}
+
+.domain-item.active .domain-label {
+  color: var(--vt-c-primary);
+  font-weight: 500;
 }
 
 .domain-hint {
@@ -1674,41 +1729,54 @@ const toggleDomain = (domainValue) => {
   background: #f5f7ff;
   border-radius: 8px;
   line-height: 1.4;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 768px) {
-  .domain-selector {
+  .domain-list {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .domain-btn {
+  .domain-item {
     width: 100%;
     min-width: 0;
   }
 }
 
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  color: #333;
-}
-
-.section-title svg {
-  color: var(--vt-c-primary);
-}
-
-.section-title span {
-  font-size: 16px;
-  font-weight: 500;
+@media (max-width: 480px) {
+  .domain-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .domain-item {
+    width: 100%;
+  }
+  
+  .difficulty-options {
+    flex-direction: column;
+  }
+  
+  .difficulty-option span {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 .setting-group {
-  background: white;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: #f8f9fa;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.setting-group:hover {
+  border-color: var(--vt-c-primary);
+  box-shadow: 0 2px 8px rgba(var(--vt-c-primary-rgb), 0.1);
 }
 </style>

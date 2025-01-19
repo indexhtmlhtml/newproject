@@ -90,7 +90,7 @@
 
         <!-- 判断题部分 -->
         <div v-if="paper?.truefalse?.length" class="question-section">
-          <h3>{{ t('paper.questionTypes.truefalse') }}</h3>
+          <h3>{{ t('判断题') }}</h3>
           <div v-for="(question, index) in paper.truefalse" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
@@ -117,7 +117,7 @@
 
         <!-- 简答题部分 -->
         <div v-if="paper?.shortanswer?.length" class="question-section">
-          <h3>{{ t('paper.questionTypes.shortanswer') }}</h3>
+          <h3>{{ t('简答题') }}</h3>
           <div v-for="(question, index) in paper.shortanswer" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>
@@ -133,7 +133,7 @@
 
         <!-- 匹配题部分 -->
         <div v-if="paper?.matching?.length" class="question-section">
-          <h3>{{ t('paper.questionTypes.matching') }}</h3>
+          <h3>{{ t('匹配题') }}</h3>
           <div v-for="(question, index) in paper.matching" :key="index" class="question-item">
             <div class="question-header">
               <span class="question-number">{{ index + 1 }}</span>

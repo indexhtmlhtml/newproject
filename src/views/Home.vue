@@ -132,6 +132,38 @@
       <section class="analysis-section">
         <ScoreAnalysis />
       </section>
+
+      <!-- 添加面试官选择区域 -->
+      <div class="interview-section">
+        <h2 class="section-title">AI 模拟面试</h2>
+        <div class="interviewer-grid">
+          <div v-for="interviewer in interviewers" 
+               :key="interviewer.id" 
+               class="interviewer-card"
+               @click="startInterview(interviewer)">
+            <div class="interviewer-avatar">
+              <img :src="interviewer.avatar" :alt="interviewer.name">
+              <div class="online-status" :class="{ active: interviewer.online }"></div>
+            </div>
+            <div class="interviewer-info">
+              <h3 class="interviewer-name">{{ interviewer.name }}</h3>
+              <p class="interviewer-title">{{ interviewer.title }}</p>
+              <p class="interviewer-company">{{ interviewer.company }}</p>
+              <div class="interviewer-tags">
+                <span v-for="tag in interviewer.tags" 
+                      :key="tag" 
+                      class="tag">{{ tag }}</span>
+              </div>
+            </div>
+            <button class="start-btn">开始面试</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 原有的试卷生成部分 -->
+      <div class="paper-section">
+        <!-- ... 保持原有内容不变 ... -->
+      </div>
     </main>
   </div>
 </template>
@@ -295,6 +327,47 @@ const afterLeave = (el) => {
   el.style.transform = ''
   el.style.opacity = ''
   el.style.filter = ''
+}
+
+// 面试官数据
+const interviewers = ref([
+  {
+    id: '7456723652143398963', // Coze BOT ID
+    name: 'James Chen',
+    title: 'Java技术专家',
+    company: 'ByteDance',
+    avatar: '/images/interviewers/java.png',
+    online: true,
+    tags: ['Java', 'Spring Boot', '分布式系统'],
+    type: 'coze',
+    description: '8年Java开发经验，专注于分布式系统和高并发架构设计'
+  },
+  {
+    id: 'frontend-1',
+    name: 'Sarah Zhang',
+    title: '前端架构师',
+    company: 'Alibaba',
+    avatar: '/images/interviewers/frontend.png',
+    online: true,
+    tags: ['Vue', 'React', '前端工程化'],
+    type: 'gpt',
+    description: '6年前端开发经验，精通现代前端框架和工程化实践'
+  }
+])
+
+// 开始面试
+const startInterview = (interviewer) => {
+  // 存储当前面试官信息
+  localStorage.setItem('currentInterviewer', JSON.stringify(interviewer))
+  
+  // 跳转到面试页面
+  router.push({
+    path: '/interview',
+    query: {
+      id: interviewer.id,
+      type: interviewer.type
+    }
+  })
 }
 </script>
 
@@ -879,5 +952,128 @@ const afterLeave = (el) => {
 
 .analysis-btn:hover svg path {
   fill: #4F6EF7;
+}
+
+/* 添加面试官相关样式 */
+.interview-section {
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #333;
+}
+
+.interviewer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.interviewer-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.interviewer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.interviewer-avatar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+}
+
+.interviewer-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.online-status {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ddd;
+  border: 2px solid white;
+}
+
+.online-status.active {
+  background: #22c55e;
+}
+
+.interviewer-info {
+  margin-bottom: 16px;
+}
+
+.interviewer-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.interviewer-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.interviewer-company {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+.interviewer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tag {
+  padding: 4px 12px;
+  background: #f0f5ff;
+  color: #4F6EF7;
+  border-radius: 16px;
+  font-size: 12px;
+}
+
+.start-btn {
+  width: 100%;
+  padding: 12px;
+  background: #4F6EF7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn:hover {
+  background: #3D5CE5;
+}
+
+@media (max-width: 768px) {
+  .interviewer-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

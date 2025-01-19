@@ -1,66 +1,77 @@
-export const INTERVIEWERS = {
-  frontend: {
-    id: 'frontend',
-    name: 'Sarah Chen',
-    avatar: '/avatars/sarah.png',
-    title: '前端技术专家',
-    company: 'TechFlow',
-    description: '专注于现代前端开发技术栈,包括 Vue、React、TypeScript 等',
-    requirements: [
-      '扎实的 JavaScript 基础',
-      '现代前端框架经验',
-      '良好的工程化实践',
-      '出色的问题解决能力'
-    ],
-    personality: '友好专业,注重实践能力',
-    level: 'senior'
+export const INTERVIEWERS = [
+  {
+    id: '7456723652143398963',
+    name: 'James Chen',
+    title: 'Java技术专家',
+    company: 'ByteDance',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=java&backgroundColor=b6e3f4',
+    description: '8年Java开发经验，专注于分布式系统和高并发架构设计',
+    tags: ['Java', 'Spring Boot', '分布式系统'],
+    type: 'coze',
+    experience: 8,
+    rating: 4.9,
+    online: true,
+    styles: ['注重基础原理', '关注技术深度', '善于引导思考'],
+    direction: '后端开发'
   },
-  backend: {
-    id: 'backend', 
+  {
+    id: '7456723652143398964',
+    name: 'Sarah Zhang',
+    title: '前端架构师',
+    company: 'Alibaba',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=frontend&backgroundColor=ffdfbf',
+    description: '6年前端开发经验，精通现代前端框架和工程化实践',
+    tags: ['Vue', 'React', '前端工程化'],
+    type: 'coze',
+    experience: 6,
+    rating: 4.8,
+    online: true,
+    styles: ['重视代码质量', '注重工程实践', '关注用户体验'],
+    direction: '前端开发'
+  },
+  {
+    id: '7456723652143398965',
     name: 'Michael Wang',
-    avatar: '/avatars/michael.png',
-    title: '后端架构师',
-    company: 'CloudScale',
-    description: '专注于分布式系统设计与微服务架构',
-    requirements: [
-      '扎实的计算机基础',
-      '分布式系统经验',
-      '高并发处理能力',
-      '系统设计能力'
-    ],
-    personality: '严谨理性,注重原理',
-    level: 'senior'
+    title: '算法专家',
+    company: 'Google',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=algorithm&backgroundColor=d1f4d9',
+    description: '算法竞赛金牌得主，专注于机器学习和算法优化',
+    tags: ['算法设计', '机器学习', '性能优化'],
+    type: 'coze',
+    experience: 7,
+    rating: 4.9,
+    online: true,
+    styles: ['思维导向', '重视逻辑性', '关注性能优化'],
+    direction: '算法'
   },
-  fullstack: {
-    id: 'fullstack',
+  {
+    id: '7456723652143398966',
     name: 'Emma Davis',
-    avatar: '/avatars/emma.png', 
-    title: '全栈工程师',
-    company: 'StartupHub',
-    description: '全栈开发专家,同时具备前后端开发经验',
-    requirements: [
-      '前后端技术栈经验',
-      '系统架构设计能力',
-      '产品思维',
-      '快速学习能力'
-    ],
-    personality: '开放活跃,注重效率',
-    level: 'mid'
+    title: '系统架构师',
+    company: 'Microsoft',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=architect&backgroundColor=ffd5e5',
+    description: '10年系统架构经验，专注于大规模分布式系统设计',
+    tags: ['系统设计', '架构设计', '微服务'],
+    type: 'coze',
+    experience: 10,
+    rating: 4.95,
+    online: true,
+    styles: ['系统性思维', '注重可扩展性', '关注技术选型'],
+    direction: '系统架构'
   },
-  ai: {
-    id: 'ai',
-    name: 'Dr. Zhang',
-    avatar: '/avatars/zhang.png',
-    title: 'AI 研究员',
-    company: 'AILabs',
-    description: '专注于机器学习和深度学习研究',
-    requirements: [
-      '扎实的数学基础',
-      '机器学习算法理解',
-      '深度学习框架使用经验',
-      '论文实现能力'
-    ],
-    personality: '学术严谨,注重创新',
-    level: 'senior'
+  {
+    id: '7456723652143398967',
+    name: 'David Liu',
+    title: '后端开发专家',
+    company: 'Tencent',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=backend&backgroundColor=c8e6c9',
+    description: '7年后端开发经验，专注于高并发系统和数据库优化',
+    tags: ['Go', 'MySQL', '系统优化'],
+    type: 'coze',
+    experience: 7,
+    rating: 4.85,
+    online: true,
+    styles: ['实践导向', '注重性能', '关注可用性'],
+    direction: '后端开发'
   }
-} 
+] 

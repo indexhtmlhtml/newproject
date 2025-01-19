@@ -43,6 +43,12 @@ const routes = [
     component: Interview
   },
   {
+    path: '/interview/chat/:id',
+    name: 'InterviewChat',
+    component: () => import('../views/InterviewChat.vue'),
+    props: true
+  },
+  {
     path: '/solve-paper',
     name: 'SolvePaper',
     component: () => import('../views/SolvePaper.vue')

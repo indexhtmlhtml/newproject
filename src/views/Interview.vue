@@ -279,10 +279,11 @@
 
 <script setup>
 import { ref, onMounted, nextTick, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { INTERVIEWERS } from '../config/interviewers'
 
 const router = useRouter()
+const route = useRoute()
 const messages = ref([])
 const currentMessage = ref('')
 const isLoading = ref(false)
@@ -346,10 +347,34 @@ const toggleGuidance = () => {
   showGuidance.value = !showGuidance.value
 }
 
+// 组件加载时根据路由参数初始化面试官
+onMounted(() => {
+  const interviewerId = route.query.interviewer
+  if (interviewerId) {
+    const interviewer = INTERVIEWERS.find(i => i.id === interviewerId)
+    if (interviewer) {
+      selectInterviewer(interviewer)
+    } else {
+      router.push('/home')
+    }
+  } else {
+    // 检查是否有未完成的面试
+    const savedInterviewer = localStorage.getItem('currentInterviewer')
+    if (savedInterviewer) {
+      currentInterviewer.value = JSON.parse(savedInterviewer)
+      initializeInterview(currentInterviewer.value)
+    }
+  }
+})
+
 // 初始化面试
 const initializeInterview = async (interviewer) => {
   try {
     isLoading.value = true
+    // 记录面试开始时间
+    interviewer.startTime = Date.now()
+    localStorage.setItem('currentInterviewer', JSON.stringify(interviewer))
+    
     const response = await fetch('/coze-api/messages', {
       method: 'POST',
       headers: {
@@ -359,13 +384,16 @@ const initializeInterview = async (interviewer) => {
         bot_id: interviewer.id,
         content: [{
           role: 'system',
-          content: `你是一位${interviewer.title}面试官。请以专业面试官的身份进行面试，遵循以下规则：
-          1. 先简单自我介绍
-          2. 从基础知识开始提问
-          3. 根据候选人的回答逐步增加难度
+          content: `你是一位${interviewer.title}面试官，专注于${interviewer.direction}领域。
+          你的面试风格是：${interviewer.styles.join('、')}。
+          请以专业面试官的身份进行面试，遵循以下规则：
+          1. 先简单自我介绍，介绍你的背景和专长
+          2. 从基础知识开始提问，逐步增加难度
+          3. 根据候选人的回答调整问题深度
           4. 注重考察实际问题解决能力
           5. 每次只问一个问题，等待回答后再继续
-          6. 如果回答不够清楚，适时追问`
+          6. 如果回答不够清楚，适时追问
+          7. 给出专业的反馈和建议`
         }],
         conversation_id: `interview_${Date.now()}`,
       })
@@ -376,7 +404,6 @@ const initializeInterview = async (interviewer) => {
     }
 
     const data = await response.json()
-    // 过滤出类型为 answer 的消息
     const answer = data.data.find(msg => msg.type === 'answer')
     messages.value = [{
       role: 'assistant',
@@ -400,7 +427,12 @@ const selectInterviewer = async (interviewer) => {
   
   currentInterviewer.value = interviewer
   localStorage.setItem('currentInterviewer', JSON.stringify(interviewer))
-  await initializeInterview(interviewer)
+  
+  // 跳转到面试聊天页面
+  router.push({
+    name: 'InterviewChat',
+    params: { id: interviewer.id }
+  })
 }
 
 // 发送消息
@@ -491,15 +523,6 @@ const endInterview = async () => {
     console.error('End interview error:', err)
   }
 }
-
-// 组件加载时检查是否有未完成的面试
-onMounted(() => {
-  const savedInterviewer = localStorage.getItem('currentInterviewer')
-  if (savedInterviewer) {
-    currentInterviewer.value = JSON.parse(savedInterviewer)
-    initializeInterview(currentInterviewer.value)
-  }
-})
 
 const interviewSteps = [
   '基础知识',

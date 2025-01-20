@@ -1,54 +1,74 @@
 <template>
   <div class="interview-chat">
     <header class="chat-header">
-      <div class="header-content">
-        <button class="back-btn" @click="confirmExit">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-          </svg>
-          <span>返回</span>
-        </button>
-        <div class="interviewer-info">
-          <div class="avatar-wrapper">
-            <img :src="interviewer?.avatar" :alt="interviewer?.name" class="interviewer-avatar">
-            <span class="online-dot"></span>
+      <div class="header-main">
+        <div class="header-left">
+          <button class="back-btn" @click="handleBack">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+          </button>
+          <div class="nav-breadcrumb">
+            <span @click="router.push('/home')">首页</span>
+            <span class="separator">/</span>
+            <span @click="router.push('/interview')">面试官</span>
+            <span class="separator">/</span>
+            <span class="current">面试中</span>
           </div>
-          <div class="info-text">
-            <h2>{{ interviewer?.name }}</h2>
-            <div class="status">
-              <span class="experience">{{ interviewer?.experience }}年经验</span>
-              <span class="rating">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="#FFB400" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-                </svg>
-                {{ interviewer?.rating }}
-              </span>
-              <span>{{ interviewer?.title }}</span>
+        </div>
+
+        <div class="header-center">
+          <div class="interviewer-profile">
+            <div class="avatar-wrapper">
+              <img :src="interviewer?.avatar" :alt="interviewer?.name">
+              <span class="online-dot"></span>
+            </div>
+            <div class="interviewer-info">
+              <h2>{{ interviewer?.name }}</h2>
+              <div class="interviewer-tags">
+                <span class="tag experience">{{ interviewer?.experience }}年经验</span>
+                <span class="tag">{{ interviewer?.title }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div class="header-actions">
-          <button class="action-btn" @click="toggleGuidance" title="面试指南">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
-            </svg>
-          </button>
-          <span class="interview-step">
-            第 {{ currentStep }}/4 轮
-          </span>
-          <div class="interview-duration" v-if="startTime">
-            {{ formatDuration }}
+
+        <div class="header-right">
+          <div class="resume-upload">
+            <input
+              type="file"
+              ref="fileInput"
+              accept=".pdf"
+              @change="handleFileUpload"
+              class="hidden-input"
+            />
+            <button 
+              class="upload-btn"
+              @click="triggerFileUpload"
+              :class="{ 'uploaded': isUploaded, 'uploading': isUploading }"
+            >
+              <svg v-if="!isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.84V19h2v-4.16l1.59 1.59L16 15.01 12.01 11z"/>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+              </svg>
+              <span>{{ uploadButtonText }}</span>
+              <div v-if="isUploading" class="upload-progress"></div>
+            </button>
           </div>
-          <button class="action-btn" @click="toggleFullscreen">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="interview-progress">
-        <div class="progress-bar">
-          <div class="progress" :style="{ width: `${(currentStep / 4) * 100}%` }"></div>
+          <div class="header-actions">
+            <button class="action-btn" @click="toggleGuidance" title="面试指南">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+              </svg>
+            </button>
+            <button class="action-btn" @click="toggleFullscreen">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -169,6 +189,10 @@ const interviewer = ref(null)
 const messagesContainer = ref(null)
 const startTime = ref(null)
 const showGuidance = ref(false)
+const fileInput = ref(null)
+const resumeFile = ref(null)
+const isUploading = ref(false)
+const isUploaded = ref(false)
 
 const interviewSteps = [
   {
@@ -199,9 +223,14 @@ const toggleGuidance = () => {
   showGuidance.value = !showGuidance.value
 }
 
-const confirmExit = () => {
+const handleBack = async () => {
   if (messages.value.length > 0) {
-    if (confirm('确定要结束当前面试吗？')) {
+    const result = await showConfirmDialog(
+      '结束面试',
+      '确定要结束当前面试吗？您的面试记录将会保存。'
+    )
+    if (result) {
+      await saveInterviewRecord()
       router.push('/interview')
     }
   } else {
@@ -209,36 +238,30 @@ const confirmExit = () => {
   }
 }
 
-const endInterview = async () => {
-  if (!confirm('确定要结束面试吗？')) return
-  
+const showConfirmDialog = (title, message) => {
+  return new Promise((resolve) => {
+    const result = window.confirm(message)
+    resolve(result)
+  })
+}
+
+const saveInterviewRecord = async () => {
   try {
-    isLoading.value = true
-    const response = await fetch('/coze-api/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        bot_id: interviewer.value.id,
-        content: '请对这次面试进行总结，包括我的表现、优势和需要改进的地方。',
-        conversation_id: `interview_${startTime.value}`,
-      })
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      messages.value.push({
-        role: 'assistant',
-        content: data.data.find(msg => msg.type === 'answer').content,
-        timestamp: Date.now()
-      })
+    const record = {
+      id: conversationId.value,
+      interviewer: interviewer.value,
+      startTime: startTime.value,
+      endTime: Date.now(),
+      messages: messages.value,
     }
+    localStorage.setItem(`interview_record_${record.id}`, JSON.stringify(record))
   } catch (err) {
-    console.error('End interview error:', err)
-  } finally {
-    isLoading.value = false
+    console.error('Save interview record error:', err)
   }
+}
+
+const switchToNotes = () => {
+  console.log('Switch to notes mode')
 }
 
 // Coze API 配置
@@ -470,6 +493,76 @@ const userAvatar = computed(() => {
   }
   return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9&backgroundType=gradientLinear&scale=85`
 })
+
+const triggerFileUpload = () => {
+  fileInput.value.click()
+}
+
+const uploadButtonText = computed(() => {
+  if (isUploading.value) return '上传中...'
+  if (isUploaded.value) return '简历已上传'
+  return '上传简历'
+})
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0]
+  if (file && file.type === 'application/pdf') {
+    try {
+      isUploading.value = true
+      resumeFile.value = file
+      
+      // 向面试官发送简历内容
+      const response = await fetch(COZE_API.BASE_URL, {
+        method: 'POST',
+        headers: COZE_API.HEADERS,
+        body: JSON.stringify({
+          conversation_id: conversationId.value,
+          bot_id: COZE_API.BOT_ID,
+          user: COZE_API.USER_ID,
+          query: `我上传了一份简历，文件名是：${file.name}，这是一份 PDF 格式的简历，请帮我分析一下我的简历内容，并针对简历内容进行面试。`,
+          stream: true,
+          custom_variables: {
+            bot_name: "java面试官"
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('简历上传失败')
+      }
+
+      // 添加用户的上传消息
+      messages.value.push({
+        role: 'user',
+        content: `已上传简历：${file.name}`,
+        timestamp: Date.now()
+      })
+
+      // 处理面试官的响应
+      let currentResponse = ''
+      messages.value.push({
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now()
+      })
+
+      await handleStreamResponse(response, (content) => {
+        currentResponse += content
+        messages.value[messages.value.length - 1].content = currentResponse
+      })
+
+      isUploaded.value = true
+      
+    } catch (error) {
+      console.error('Resume upload error:', error)
+      alert('简历上传失败，请重试')
+    } finally {
+      isUploading.value = false
+    }
+  } else {
+    alert('请上传 PDF 格式的简历')
+  }
+}
 </script>
 
 <style scoped>
@@ -489,13 +582,76 @@ const userAvatar = computed(() => {
   z-index: 100;
 }
 
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+.header-main {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 16px 24px;
+  gap: 32px;
+  background: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.header-left {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.header-center {
+  justify-self: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.interviewer-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: linear-gradient(to right, #f8f9fa, #f5f7ff);
+  border-radius: 16px;
+  border: 1px solid rgba(79, 110, 247, 0.1);
+  transition: all 0.3s ease;
+}
+
+.interviewer-profile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.08);
+}
+
+.interviewer-tags {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.tag {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.tag.experience {
+  background: rgba(76, 175, 80, 0.1);
+  color: #43a047;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.interview-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: #666;
 }
 
 .back-btn {
@@ -503,45 +659,119 @@ const userAvatar = computed(() => {
   align-items: center;
   gap: 4px;
   padding: 8px;
-  border: none;
   background: transparent;
+  border: none;
   cursor: pointer;
   color: #666;
+  border-radius: 8px;
+  transition: all 0.3s;
 }
 
 .back-btn:hover {
+  background: rgba(79, 110, 247, 0.1);
   color: #4F6EF7;
 }
 
-.interviewer-info {
-  flex: 1;
-}
-
-.interviewer-info h2 {
-  font-size: 18px;
-  margin: 0;
-  color: #333;
-}
-
-.status {
+.nav-breadcrumb {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 14px;
   color: #666;
+  margin-left: 16px;
 }
 
-.online-dot {
-  width: 8px;
-  height: 8px;
+.nav-breadcrumb span {
+  cursor: pointer;
+}
+
+.nav-breadcrumb span:hover:not(.current) {
+  color: #4F6EF7;
+}
+
+.nav-breadcrumb .separator {
+  color: #999;
+  cursor: default;
+}
+
+.nav-breadcrumb .current {
+  color: #333;
+  cursor: default;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.step-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4F6EF7;
+}
+
+.step-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #4CAF50;
+  background: #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.dot.active {
+  background: #4F6EF7;
+  transform: scale(1.2);
 }
 
 .interview-duration {
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border-radius: 20px;
+  font-family: 'Roboto Mono', monospace;
   font-size: 14px;
   color: #666;
-  font-family: monospace;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  border-radius: 8px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn:hover {
+  background: rgba(79, 110, 247, 0.1);
+  color: #4F6EF7;
+  transform: translateY(-1px);
+}
+
+.interviewer-info h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
 }
 
 .chat-main {
@@ -854,78 +1084,9 @@ textarea::placeholder {
   border: 2px solid white;
 }
 
-.info-text {
+.interviewer-info {
   display: flex;
   flex-direction: column;
-}
-
-.interview-step {
-  font-size: 14px;
-  color: #666;
-  margin-right: 16px;
-}
-
-.interview-progress {
-  height: 2px;
-  background: #f0f0f0;
-  margin-top: 12px;
-}
-
-.progress-bar {
-  height: 100%;
-  background: #f0f0f0;
-}
-
-.progress {
-  height: 100%;
-  background: #4F6EF7;
-  transition: width 0.3s ease;
-}
-
-.interview-start-info {
-  text-align: center;
-  padding: 40px 20px;
-  background: white;
-  border-radius: 12px;
-  margin-bottom: 24px;
-}
-
-.avatar-large {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 16px;
-}
-
-.avatar-large img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.tags {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 12px;
-}
-
-.tag {
-  padding: 4px 12px;
-  background: #f0f2f5;
-  border-radius: 16px;
-  font-size: 12px;
-  color: #666;
-}
-
-.experience, .rating {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  background: #f0f2f5;
-  border-radius: 12px;
-  font-size: 12px;
 }
 
 .guidance-modal {
@@ -1004,5 +1165,88 @@ textarea::placeholder {
 
 .close-btn:hover {
   background: #e4e6e9;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.resume-upload {
+  margin-right: 16px;
+}
+
+.upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-btn:hover {
+  background: rgba(79, 110, 247, 0.1);
+  color: #4F6EF7;
+  border-color: #4F6EF7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.1);
+}
+
+.upload-btn.uploaded {
+  background: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.upload-btn.uploaded:hover {
+  background: #43A047;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.upload-btn.uploading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.upload-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  animation: progress 1s infinite linear;
+}
+
+@keyframes progress {
+  0% {
+    width: 0;
+    opacity: 0.1;
+  }
+  50% {
+    width: 100%;
+    opacity: 0.3;
+  }
+  100% {
+    width: 0;
+    opacity: 0.1;
+  }
+}
+
+.upload-btn svg {
+  flex-shrink: 0;
+}
+
+.upload-btn span {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style> 

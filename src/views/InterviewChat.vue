@@ -3,15 +3,15 @@
     <header class="chat-header">
       <div class="header-main">
         <div class="header-left">
-          <button class="back-btn" @click="handleBack">
+          <button class="back-btn" type="button" @click.stop="handleBack">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
               <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
             </svg>
           </button>
           <div class="nav-breadcrumb">
-            <span @click="router.push('/home')">首页</span>
+            <span @click.stop="router.push('/home')">首页</span>
             <span class="separator">/</span>
-            <span @click="router.push('/interview')">面试官</span>
+            <span @click.stop="router.push('/interview')">面试官</span>
             <span class="separator">/</span>
             <span class="current">面试中</span>
           </div>
@@ -44,7 +44,8 @@
             />
             <button 
               class="upload-btn"
-              @click="triggerFileUpload"
+              type="button"
+              @click.stop="triggerFileUpload"
               :class="{ 'uploaded': isUploaded, 'uploading': isUploading }"
             >
               <svg v-if="!isUploaded" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
@@ -58,12 +59,12 @@
             </button>
           </div>
           <div class="header-actions">
-            <button class="action-btn" @click="toggleGuidance" title="面试指南">
+            <button class="action-btn" type="button" @click.stop="toggleGuidance" title="面试指南">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
               </svg>
             </button>
-            <button class="action-btn" @click="toggleFullscreen">
+            <button class="action-btn" type="button" @click.stop="toggleFullscreen">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
               </svg>
@@ -114,6 +115,15 @@
             <div class="message-info">
               <span class="sender">{{ message.role === 'assistant' ? interviewer?.name : '我' }}</span>
               <span class="time">{{ formatTime(message.timestamp) }}</span>
+              <button v-if="message.role === 'assistant'"
+                        class="audio-control"
+                        @click="toggleMessageAudio(message)"
+                        :class="{ 'playing': speaking }">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                  <path v-if="speaking" fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  <path v-else fill="currentColor" d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
             </div>
             <div class="message-text" v-html="message.content"></div>
           </div>
@@ -136,16 +146,36 @@
     <footer class="chat-footer">
       <div class="input-container">
         <div class="input-wrapper">
+          <div v-if="isRecording" class="recording-indicator">
+            <div class="recording-wave"></div>
+            <span>正在录音... {{ recordingTime }}s</span>
+            <button class="stop-recording" @click="stopRecording">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M6 6h12v12H6z"/>
+              </svg>
+            </button>
+          </div>
           <textarea 
             v-model="currentMessage"
             @keyup.enter.exact="sendMessage"
             @keydown.enter.exact.prevent
             placeholder="输入消息..."
-            :disabled="isLoading"
+            :disabled="isLoading || isRecording"
             @input="autoGrow"
             rows="1"
           ></textarea>
           <div class="input-actions">
+            <button 
+              class="action-icon" 
+              :class="{ 'recording': isRecording }"
+              type="button"
+              @click.stop="toggleRecording"
+              title="语音输入">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"/>
+                <path fill="currentColor" d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
             <button class="action-icon" title="结束面试" @click="endInterview">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
@@ -165,8 +195,9 @@
         </div>
         <button 
           class="send-btn"
-          @click="sendMessage"
-          :disabled="isLoading || !currentMessage.trim()"
+          type="button"
+          @click.stop="sendMessage"
+          :disabled="isLoading || (!currentMessage.trim() && !isRecording)"
         >
           发送
         </button>
@@ -176,9 +207,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { INTERVIEWERS } from '../config/interviewers'
+import CryptoJS from 'crypto-js'
 
 const router = useRouter()
 const route = useRoute()
@@ -193,6 +225,11 @@ const fileInput = ref(null)
 const resumeFile = ref(null)
 const isUploading = ref(false)
 const isUploaded = ref(false)
+const isRecording = ref(false)
+const recordingTime = ref(0)
+const mediaRecorder = ref(null)
+const audioChunks = ref([])
+let recordingTimer = null
 
 const interviewSteps = [
   {
@@ -223,7 +260,8 @@ const toggleGuidance = () => {
   showGuidance.value = !showGuidance.value
 }
 
-const handleBack = async () => {
+const handleBack = async (event) => {
+  if (event) event.preventDefault()
   if (messages.value.length > 0) {
     const result = await showConfirmDialog(
       '结束面试',
@@ -281,11 +319,234 @@ const COZE_API = {
 // 生成会话ID
 const conversationId = ref(`interview_${Date.now()}`)
 
-// 处理流式响应
+// 讯飞语音合成配置
+const XF_TTS_CONFIG = {
+  HOST: 'cbm01.cn-huabei-1.xf-yun.com',
+  PATH: '/v1/private/mcd9m97e6',
+  APP_ID: '3b4054d4',
+  API_KEY: 'c844821bb151c360b96840040731ca26',
+  API_SECRET: 'ZGUwZWM5NDNmOTdkMGIzYjFiMDQ5NjAw'
+}
+
+// 生成RFC1123格式的日期
+const getDate = () => {
+  const date = new Date()
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  
+  return `${days[date.getUTCDay()]}, ${String(date.getUTCDate()).padStart(2, '0')} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()} ${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}:${String(date.getUTCSeconds()).padStart(2, '0')} GMT`
+}
+
+// 生成鉴权URL
+const getAuthUrl = () => {
+  const date = getDate()
+  
+  // 1. 生成签名字符串
+  const signatureOrigin = [
+    `host: ${XF_TTS_CONFIG.HOST}`,
+    `date: ${date}`,
+    `GET ${XF_TTS_CONFIG.PATH} HTTP/1.1`
+  ].join('\n')
+  
+  // 2. 使用 HMAC-SHA256 加密
+  const hmac = CryptoJS.HmacSHA256(signatureOrigin, XF_TTS_CONFIG.API_SECRET)
+  const signatureBase64 = CryptoJS.enc.Base64.stringify(hmac)
+  
+  // 3. 组装 authorization 原始字符串
+  const authorizationOrigin = `api_key="${XF_TTS_CONFIG.API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signatureBase64}"`
+  
+  // 4. authorization 进行 base64 编码
+  const authorization = btoa(authorizationOrigin)
+  
+  // 5. 拼接 URL 参数
+  const params = new URLSearchParams({
+    authorization,
+    date,
+    host: XF_TTS_CONFIG.HOST
+  })
+  
+  // 6. 添加调试日志
+  console.log('Auth URL:', `wss://${XF_TTS_CONFIG.HOST}${XF_TTS_CONFIG.PATH}?${params.toString()}`)
+  console.log('Signature Origin:', signatureOrigin)
+  console.log('Authorization:', authorization)
+  
+  return `wss://${XF_TTS_CONFIG.HOST}${XF_TTS_CONFIG.PATH}?${params.toString()}`
+}
+
+// 语音相关状态
+const audio = ref(new Audio())
+const speaking = ref(false)
+
+// 停止当前语音播放
+const stopSpeaking = () => {
+  if (speaking.value) {
+    audio.value.pause()
+    audio.value.currentTime = 0
+    speaking.value = false
+  }
+}
+
+// 文本转语音
+const speak = async (text) => {
+  stopSpeaking()
+  
+  // 移除HTML标签
+  const plainText = text.replace(/<[^>]*>/g, '')
+  
+  try {
+    const wsPromise = new Promise((resolve, reject) => {
+      const ws = new WebSocket(getAuthUrl())
+      const timeout = setTimeout(() => {
+        ws.close()
+        reject(new Error('WebSocket connection timeout'))
+      }, 5000)
+
+      ws.onopen = () => {
+        clearTimeout(timeout)
+        resolve(ws)
+      }
+
+      ws.onerror = (error) => {
+        clearTimeout(timeout)
+        reject(error)
+      }
+    })
+
+    const ws = await wsPromise
+    
+    return await new Promise((resolve, reject) => {
+      // 发送语音合成请求
+      ws.send(JSON.stringify({
+        header: {
+          app_id: XF_TTS_CONFIG.APP_ID,
+          status: 2
+        },
+        parameter: {
+          oral: {
+            oral_level: "mid",
+            spark_assist: 1,
+            stop_split: 0,
+            remain: 0
+          },
+          tts: {
+            vcn: "x4_lingxiaoxuan_oral",
+            speed: 50,
+            volume: 50,
+            pitch: 50,
+            bgs: 0,
+            reg: 0,
+            rdn: 0,
+            rhy: 0,
+            audio: {
+              encoding: "lame",
+              sample_rate: 24000,
+              channels: 1,
+              bit_depth: 16,
+              frame_size: 0
+            }
+          }
+        },
+        payload: {
+          text: {
+            encoding: "utf8",
+            compress: "raw",
+            format: "plain",
+            status: 2,
+            seq: 0,
+            text: btoa(unescape(encodeURIComponent(plainText)))
+          }
+        }
+      }))
+
+      let audioChunks = []
+      
+      ws.onmessage = (event) => {
+        try {
+          // 检查是否是二进制数据
+          if (event.data instanceof Blob) {
+            audioChunks.push(event.data)
+            return
+          }
+          
+          const response = JSON.parse(event.data)
+          console.log('WebSocket response:', response)
+          
+          if (response.header && response.header.code !== 0) {
+            reject(new Error(response.header.message))
+            return
+          }
+          
+          // 检查是否收到音频数据
+          if (response.payload && response.payload.audio && response.payload.audio.audio) {
+            const audioData = atob(response.payload.audio.audio)
+            const arrayBuffer = new ArrayBuffer(audioData.length)
+            const view = new Uint8Array(arrayBuffer)
+            for (let i = 0; i < audioData.length; i++) {
+              view[i] = audioData.charCodeAt(i)
+            }
+            audioChunks.push(arrayBuffer)
+          }
+          
+          if (response.header && response.header.status === 2) {
+            // 合成完成，播放音频
+            const blob = new Blob(audioChunks, { type: 'audio/mpeg' })
+            const audioUrl = URL.createObjectURL(blob)
+            
+            const newAudio = new Audio()
+            newAudio.src = audioUrl
+            
+            newAudio.preload = 'auto'
+            
+            newAudio.oncanplay = () => {
+              audio.value = newAudio
+              audio.value.onplay = () => {
+                speaking.value = true
+              }
+              audio.value.onended = () => {
+                speaking.value = false
+                URL.revokeObjectURL(audioUrl)
+                resolve()
+              }
+              audio.value.onerror = (e) => {
+                console.error('Audio playback error:', e)
+                reject(new Error('音频播放失败'))
+              }
+              
+              const playPromise = audio.value.play()
+              if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                  console.error('Playback failed:', error)
+                  reject(error)
+                })
+              }
+            }
+            
+            newAudio.onerror = (e) => {
+              console.error('Audio loading error:', e)
+              reject(new Error('音频加载失败'))
+            }
+            
+            ws.close()
+          }
+        } catch (error) {
+          console.error('Failed to handle WebSocket message:', error)
+          reject(error)
+        }
+      }
+    })
+  } catch (error) {
+    console.error('语音合成错误:', error)
+    alert('语音播放失败，请重试')
+    throw error
+  }
+}
+
+// 修改消息发送和接收逻辑
 const handleStreamResponse = async (response, updateCallback) => {
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let fullResponse = ''
   
   try {
     while (true) {
@@ -303,16 +564,52 @@ const handleStreamResponse = async (response, updateCallback) => {
         const data = JSON.parse(line.slice(5))
         if (data.event === 'message' && !data.is_finish) {
           updateCallback(data.message.content)
+          fullResponse += data.message.content
         }
       }
     }
+    
+    // 完整回复后播放语音
+    if (fullResponse.trim()) {
+      try {
+        await speak(fullResponse)
+      } catch (error) {
+        console.error('语音合成失败:', error)
+      }
+    }
+    
   } catch (err) {
     console.error('Stream processing error:', err)
     throw err
   }
 }
 
-// 初始化面试
+// 修改组件卸载时的清理
+onUnmounted(() => {
+  stopSpeaking()
+  URL.revokeObjectURL(audio.value.src)
+})
+
+// 修改切换录音状态时的处理
+const toggleRecording = () => {
+  stopSpeaking() // 开始录音前停止语音播放
+  if (!isRecording.value) {
+    startRecording()
+  } else {
+    stopRecording()
+  }
+}
+
+// 添加消息组件的播放控制
+const toggleMessageAudio = (message) => {
+  if (speaking.value) {
+    stopSpeaking()
+  } else if (message.role === 'assistant') {
+    speak(message.content)
+  }
+}
+
+// 修改初始化面试逻辑
 const initializeInterview = async () => {
   try {
     isLoading.value = true
@@ -361,7 +658,7 @@ const initializeInterview = async () => {
   }
 }
 
-// 发送消息
+// 修改发送消息逻辑
 const sendMessage = async () => {
   if (!currentMessage.value.trim() || isLoading.value) return
   
@@ -561,6 +858,56 @@ const handleFileUpload = async (event) => {
     }
   } else {
     alert('请上传 PDF 格式的简历')
+  }
+}
+
+// 开始录音
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    mediaRecorder.value = new MediaRecorder(stream)
+    audioChunks.value = []
+    
+    mediaRecorder.value.ondataavailable = (event) => {
+      audioChunks.value.push(event.data)
+    }
+    
+    mediaRecorder.value.onstop = async () => {
+      const audioBlob = new Blob(audioChunks.value, { type: 'audio/wav' })
+      // 可以在这里添加音频上传或处理逻辑
+      
+      // 停止所有音轨
+      stream.getTracks().forEach(track => track.stop())
+    }
+    
+    mediaRecorder.value.start()
+    isRecording.value = true
+    recordingTime.value = 0
+    
+    // 开始计时
+    recordingTimer = setInterval(() => {
+      recordingTime.value++
+      // 限制录音时长为60秒
+      if (recordingTime.value >= 60) {
+        stopRecording()
+      }
+    }, 1000)
+  } catch (err) {
+    console.error('Recording error:', err)
+    alert('无法访问麦克风')
+  }
+}
+
+// 停止录音
+const stopRecording = () => {
+  if (mediaRecorder.value && mediaRecorder.value.state === 'recording') {
+    mediaRecorder.value.stop()
+    isRecording.value = false
+    
+    // 如果有识别出的文字，自动发送
+    if (currentMessage.value.trim()) {
+      sendMessage()
+    }
   }
 }
 </script>
@@ -1248,5 +1595,90 @@ textarea::placeholder {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.recording-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 16px;
+  z-index: 1;
+}
+
+.recording-wave {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #4F6EF7;
+  animation: wave 1s infinite ease-in-out;
+}
+
+@keyframes wave {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+.stop-recording {
+  padding: 8px;
+  background: #ff4444;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.stop-recording:hover {
+  background: #ff2222;
+  transform: scale(1.1);
+}
+
+.action-icon.recording {
+  background: #4F6EF7;
+  color: white;
+}
+
+.action-icon.recording:hover {
+  background: #3D5CE5;
+}
+
+.audio-control {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.audio-control:hover {
+  background: rgba(79, 110, 247, 0.1);
+  color: #4F6EF7;
+}
+
+.audio-control.playing {
+  color: #4F6EF7;
+  background: rgba(79, 110, 247, 0.1);
+}
+
+.message-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style> 

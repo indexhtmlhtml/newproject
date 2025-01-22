@@ -199,7 +199,13 @@
             <div class="wave"></div>
             <div class="wave"></div>
           </div>
-          <p class="status-text">{{ recognizedText || '请开始说话...' }}</p>
+          <p class="status-text" :class="{ 'reconnecting': reconnectAttempts.value > 0 }">
+            {{ recognizedText || '请开始说话...' }}
+          </p>
+          <div v-if="isListening" class="listening-indicator">
+            <span class="dot"></span>
+            <span>正在听</span>
+          </div>
         </div>
 
         <div class="call-controls">
@@ -259,6 +265,13 @@ const recordingTime = ref(0)
 const mediaRecorder = ref(null)
 const audioChunks = ref([])
 const audioPlayer = ref(null)
+const recognition = ref(null)
+const recognizedText = ref('')
+const isPaused = ref(false)
+const isListening = ref(false)
+const reconnectAttempts = ref(0)
+const MAX_RECONNECT_ATTEMPTS = 3
+let reconnectTimer = null
 let recordingTimer = null
 let currentAudioUrl = null
 
@@ -611,14 +624,14 @@ const handleStreamResponse = async (response, updateCallback) => {
     }
     
     // 如果在通话状态下，自动播放回复
-    if (isInCall.value && fullResponse.trim()) {
-      lastPlayedTimestamp = Date.now() // 记录播放时间
-      try {
-        await speak(fullResponse)
-      } catch (error) {
-        console.error('语音播放失败:', error)
-      }
-    }
+    // if (isInCall.value && fullResponse.trim()) {
+    //   lastPlayedTimestamp = Date.now() // 记录播放时间
+    //   try {
+    //     await speak(fullResponse)
+    //   } catch (error) {
+    //     console.error('语音播放失败:', error)
+    //   }
+    // }
     
   } catch (err) {
     console.error('Stream processing error:', err)
@@ -992,8 +1005,6 @@ const stopRecording = () => {
 
 // 语音通话相关状态
 const showCallModal = ref(false)
-const isPaused = ref(false)
-const recognizedText = ref('')
 const callStartTime = ref(null)
 const callStatus = ref('正在连接...')
 const localStream = ref(null)
@@ -1085,7 +1096,6 @@ const endCall = () => {
 }
 
 // 语音识别相关
-const recognition = ref(null)
 const isInCall = ref(false)
 let recognitionTimeout = null
 let lastPlayedTimestamp = 0 // 用于追踪最后一次播放的时间
@@ -1334,6 +1344,117 @@ onUnmounted(() => {
     URL.revokeObjectURL(currentAudioUrl)
   }
 })
+
+const startRecognition = async () => {
+  try {
+    // 重置之前的实例
+    resetRecognition()
+
+    // 检查浏览器支持
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('您的浏览器不支持语音识别功能，请使用Chrome浏览器。')
+      return
+    }
+
+    // 确保有麦克风权限
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    stream.getTracks().forEach(track => track.stop())
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    recognition.value = new SpeechRecognition()
+    
+    // 配置识别器
+    recognition.value.continuous = true
+    recognition.value.interimResults = true
+    recognition.value.lang = 'zh-CN'
+    recognition.value.maxAlternatives = 1
+
+    // 添加错误处理
+    recognition.value.onerror = (event) => {
+      console.error('Speech recognition error:', event.error)
+      isListening.value = false
+      
+      switch (event.error) {
+        case 'no-speech':
+          recognizedText.value = '没有检测到语音，请说话...'
+          break
+        case 'audio-capture':
+          recognizedText.value = '无法访问麦克风，请检查设备连接'
+          reconnectRecognition()
+          break
+        case 'not-allowed':
+          recognizedText.value = '请允许使用麦克风'
+          break
+        default:
+          recognizedText.value = '语音识别出错，请重试'
+          reconnectRecognition()
+      }
+    }
+
+    // 添加状态处理
+    recognition.value.onstart = () => {
+      console.log('Speech recognition started')
+      recognizedText.value = '正在听您说话...'
+      isRecording.value = true
+      isListening.value = true
+      reconnectAttempts.value = 0
+    }
+
+    recognition.value.onend = () => {
+      console.log('Speech recognition ended')
+      isListening.value = false
+      
+      if (!isPaused.value && showCallModal.value) {
+        // 如果不是手动暂停且通话模态框仍然显示，尝试重新连接
+        reconnectRecognition()
+      }
+    }
+
+    recognition.value.start()
+  } catch (error) {
+    console.error('Failed to start speech recognition:', error)
+    recognizedText.value = '启动语音识别失败，请检查麦克风权限'
+    isListening.value = false
+    alert('启动语音识别失败，请确保已授予麦克风权限并使用支持的浏览器。')
+  }
+}
+
+// 组件卸载时清理
+onUnmounted(() => {
+  resetRecognition()
+})
+
+// 重置语音识别
+const resetRecognition = () => {
+  if (recognition.value) {
+    try {
+      recognition.value.stop()
+    } catch (e) {
+      console.error('Error stopping recognition:', e)
+    }
+    recognition.value = null
+  }
+  reconnectAttempts.value = 0
+  clearTimeout(reconnectTimer)
+}
+
+// 重新连接语音识别
+const reconnectRecognition = async () => {
+  if (reconnectAttempts.value >= MAX_RECONNECT_ATTEMPTS) {
+    recognizedText.value = '语音识别多次失败，请刷新页面重试'
+    return
+  }
+  
+  reconnectAttempts.value++
+  recognizedText.value = `正在重新连接... (${reconnectAttempts.value}/${MAX_RECONNECT_ATTEMPTS})`
+  
+  try {
+    await startRecognition()
+  } catch (error) {
+    console.error('Reconnection failed:', error)
+    reconnectTimer = setTimeout(reconnectRecognition, 2000)
+  }
+}
 </script>
 
 <style scoped>
@@ -2434,5 +2555,66 @@ textarea::placeholder {
 .interviewer-tags .tag.experience {
   background: rgba(34, 197, 94, 0.1);
   color: #22c55e;
+}
+
+.listening-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4F6EF7;
+}
+
+.listening-indicator .dot {
+  width: 8px;
+  height: 8px;
+  background-color: #4F6EF7;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+}
+
+.status-text {
+  margin-top: 16px;
+  text-align: center;
+  color: #666;
+}
+
+.status-text.reconnecting {
+  color: #e6a23c;
+}
+
+.listening-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4F6EF7;
+}
+
+.listening-indicator .dot {
+  width: 8px;
+  height: 8px;
+  background-color: #4F6EF7;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
 }
 </style> 

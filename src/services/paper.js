@@ -9,37 +9,37 @@ const FREE_HISTORY_LIMIT = 3
 
 // 添加 DEEPSEEK_PROMPT 常量
 const DEEPSEEK_PROMPT = `你是一个专业的编程考试出题专家。请按照以下格式生成试题：
-{
-  "title": "试卷标题",
+            {
+              "title": "试卷标题",
   "difficulty": "难度",
   "duration": 时长(分钟),
   "totalScore": 总分值,
-  "choice": [
-    {
+              "choice": [
+                {
       "content": "题目内容",
-      "options": {
-        "A": "选项A",
-        "B": "选项B",
-        "C": "选项C",
-        "D": "选项D"
-      },
+                  "options": {
+                    "A": "选项A",
+                    "B": "选项B",
+                    "C": "选项C",
+                    "D": "选项D"
+                  },
       "answer": "正确选项字母",
       "score": 分值
-    }
-  ],
-  "programming": [
-    {
-      "content": "题目描述",
-      "example": {
-        "input": "示例输入",
-        "output": "示例输出"
-      },
+                }
+              ],
+              "programming": [
+                {
+                  "content": "题目描述",
+                  "example": {
+                    "input": "示例输入",
+                    "output": "示例输出"
+                  },
       "answer": "参考代码",
       "score": 分值
-    }
-  ],
-  "completion": [
-    {
+                }
+              ],
+              "completion": [
+                {
       "content": "题目内容，空格用___表示",
       "answer": "正确答案",
       "score": 分值
@@ -205,9 +205,9 @@ export const generatePaper = async (params) => {
       }
     })
 
-    const result = response.data.choices[0].message.content
-    
-    // 从响应中提取并解析 JSON
+      const result = response.data.choices[0].message.content
+
+      // 从响应中提取并解析 JSON
     const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/) || result.match(/{[\s\S]*}/)
     
     if (!jsonMatch) {
@@ -235,9 +235,9 @@ export const generatePaper = async (params) => {
 
     // 保存到历史记录
     savePaperToHistory(paper)
-
-    return paper
-  } catch (error) {
+      
+      return paper
+    } catch (error) {
     console.error('Error generating paper:', error)
     throw error
   }
@@ -402,4 +402,4 @@ export const gradePaperAnswers = async (paper, answers) => {
     console.error('Error grading paper:', error);
     throw error;
   }
-}
+} 

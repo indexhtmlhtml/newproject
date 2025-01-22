@@ -2,6 +2,15 @@
   <div class="interview-chat">
     <header class="chat-header">
       <div class="header-content">
+        <div class="left-section">
+          <button class="back-btn" @click="handleBack">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+            <span>返回</span>
+          </button>
+        </div>
+        
         <div class="interviewer-info">
           <div class="message-avatar">
             <img :src="interviewer?.avatar" :alt="interviewer?.name">
@@ -230,6 +239,7 @@ import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { INTERVIEWERS } from '../config/interviewers'
 import CryptoJS from 'crypto-js'
+import axios from 'axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -248,7 +258,9 @@ const isRecording = ref(false)
 const recordingTime = ref(0)
 const mediaRecorder = ref(null)
 const audioChunks = ref([])
+const audioPlayer = ref(null)
 let recordingTimer = null
+let currentAudioUrl = null
 
 const interviewSteps = [
   {
@@ -1268,6 +1280,60 @@ const currentPlayingAudio = ref(null)
 
 // 添加标记，表示是否正在处理面试官的回答
 const isProcessingResponse = ref(false)
+
+// 在 setup 中添加状态
+const isPlaying = ref(false)
+
+const playAudio = async (text) => {
+  // 防止重复播放
+  if (isPlaying.value) {
+    console.log('Audio is already playing, skipping...')
+    return
+  }
+
+  isPlaying.value = true
+  try {
+    const response = await axios.post('/api/tts', { text }, { 
+      responseType: 'blob'
+    })
+    
+    const audioBlob = new Blob([response.data], { type: 'audio/mp3' })
+    currentAudioUrl = URL.createObjectURL(audioBlob)
+    audioPlayer.value = new Audio(currentAudioUrl)
+    
+    // 添加事件监听器来更新播放状态
+    audioPlayer.value.addEventListener('ended', () => {
+      isPlaying.value = false
+      URL.revokeObjectURL(currentAudioUrl)
+      currentAudioUrl = null
+    })
+
+    audioPlayer.value.addEventListener('error', () => {
+      isPlaying.value = false
+      if (currentAudioUrl) {
+        URL.revokeObjectURL(currentAudioUrl)
+        currentAudioUrl = null
+      }
+      console.error('Audio playback error')
+    })
+
+    await audioPlayer.value.play()
+  } catch (error) {
+    console.error('Failed to play audio:', error)
+    isPlaying.value = false
+  }
+}
+
+// 组件卸载时清理资源
+onUnmounted(() => {
+  if (audioPlayer.value) {
+    audioPlayer.value.pause()
+    audioPlayer.value.src = ''
+  }
+  if (currentAudioUrl) {
+    URL.revokeObjectURL(currentAudioUrl)
+  }
+})
 </script>
 
 <style scoped>
@@ -1293,6 +1359,40 @@ const isProcessingResponse = ref(false)
   justify-content: space-between;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--vt-c-text-light-2);
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(79, 110, 247, 0.1);
+  color: var(--vt-c-primary);
+}
+
+.back-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.back-btn span {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .interviewer-info {
@@ -1359,24 +1459,6 @@ const isProcessingResponse = ref(false)
   gap: 16px;
   font-size: 14px;
   color: #666;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #666;
-  border-radius: 8px;
-  transition: all 0.3s;
-}
-
-.back-btn:hover {
-  background: rgba(79, 110, 247, 0.1);
-  color: #4F6EF7;
 }
 
 .nav-breadcrumb {

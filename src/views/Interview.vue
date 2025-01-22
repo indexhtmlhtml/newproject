@@ -2,7 +2,7 @@
   <div class="interview-container">
     <header class="header">
       <div class="header-content">
-        <button class="nav-btn" @click="router.back()">
+        <button class="nav-btn" @click="handleBack">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
           </svg>
@@ -12,24 +12,24 @@
           <div class="status-indicator"></div>
           <span>面试进行中</span>
           <span class="duration">{{ formatDuration }}</span>
-        </div>
+      </div>
         <div class="header-title">
           <h1>AI 模拟面试</h1>
           <p class="subtitle">通过 AI 技术提供专业的技术面试体验</p>
-        </div>
+    </div>
         <div class="header-actions">
           <button class="nav-btn" @click="toggleFullscreen">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
               <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-            </svg>
+        </svg>
             全屏模式
           </button>
           <button class="nav-btn" @click="toggleGuidance">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
               <path fill="currentColor" d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
-            </svg>
+          </svg>
             面试指南
-          </button>
+        </button>
         </div>
       </div>
     </header>
@@ -45,7 +45,7 @@
                 <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
               </svg>
             </button>
-          </div>
+            </div>
           <div class="guidance-body">
             <div class="tip-section">
               <h4>回答技巧</h4>
@@ -55,7 +55,7 @@
                 <li>适时举例说明，增加说服力</li>
                 <li>如果不理解问题，可以请面试官解释</li>
               </ul>
-            </div>
+          </div>
             <div class="tip-section">
               <h4>注意事项</h4>
               <ul>
@@ -88,13 +88,13 @@
               <div class="avatar-wrapper">
                 <img :src="currentInterviewer.avatar" :alt="currentInterviewer.name">
                 <div class="online-indicator"></div>
-              </div>
+            </div>
               <div class="info-text">
                 <h3>{{ currentInterviewer.name }}</h3>
                 <p class="title">{{ currentInterviewer.title }}</p>
                 <p class="company">{{ currentInterviewer.company }}</p>
-              </div>
-            </div>
+          </div>
+        </div>
             <div class="interviewer-description">
               <h4>专业领域</h4>
               <p>{{ currentInterviewer.description }}</p>
@@ -115,8 +115,8 @@
                   <div class="step-icon">{{ index + 1 }}</div>
                   <span>{{ step }}</span>
                   <div class="step-line" v-if="index < interviewSteps.length - 1"></div>
-                </div>
-              </div>
+            </div>
+          </div>
             </div>
             <div class="progress-summary">
               <div class="summary-item">
@@ -141,39 +141,39 @@
                 </svg>
                 清空对话
               </button>
-              <button class="end-btn" @click="endInterview">
+          <button class="end-btn" @click="endInterview">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                 </svg>
                 结束面试
-              </button>
+          </button>
             </div>
-          </div>
+        </div>
 
           <div class="messages" ref="messagesContainer">
             <div class="messages-date-divider">
               <span>{{ formatDate(new Date()) }}</span>
             </div>
             <div v-for="(message, index) in messages" 
-                 :key="index"
+            :key="index"
                  :class="['message', message.role]">
               <div class="message-avatar" v-if="message.role === 'assistant'">
                 <img :src="currentInterviewer.avatar" :alt="currentInterviewer.name">
-              </div>
+          </div>
               <div class="message-content">{{ message.content }}</div>
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
-            </div>
           </div>
-          
-          <div class="input-container">
-            <textarea 
+        </div>
+
+        <div class="input-container">
+          <textarea 
               v-model="currentMessage"
-              @keydown.enter.prevent="sendMessage"
+            @keydown.enter.prevent="sendMessage"
               placeholder="输入你的回答..."
               :disabled="isLoading"
               @input="autoGrow"
               ref="messageInput"
-            ></textarea>
+          ></textarea>
             <div class="input-actions">
               <div class="input-tools">
                 <button class="hint-btn" @click="toggleGuidance">
@@ -189,16 +189,16 @@
                   清空输入
                 </button>
               </div>
-              <button 
-                class="send-btn"
-                @click="sendMessage"
+          <button 
+            class="send-btn" 
+            @click="sendMessage"
                 :disabled="isLoading || !currentMessage.trim()">
                 {{ isLoading ? '思考中...' : '发送' }}
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                </svg>
-              </button>
-            </div>
+              <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
           </div>
         </div>
       </div>
@@ -383,7 +383,7 @@ const initializeInterview = async (interviewer) => {
       body: JSON.stringify({
         bot_id: interviewer.id,
         content: [{
-          role: 'system',
+      role: 'system',
           content: `你是一位${interviewer.title}面试官，专注于${interviewer.direction}领域。
           你的面试风格是：${interviewer.styles.join('、')}。
           请以专业面试官的身份进行面试，遵循以下规则：
@@ -438,7 +438,7 @@ const selectInterviewer = async (interviewer) => {
 // 发送消息
 const sendMessage = async () => {
   if (!currentMessage.value.trim() || isLoading.value) return
-  
+
   const messageContent = currentMessage.value
   currentMessage.value = ''
   isLoading.value = true
@@ -578,6 +578,36 @@ const toggleFullscreen = () => {
     document.exitFullscreen()
   }
 }
+
+// 处理返回逻辑
+const handleBack = async () => {
+  try {
+    // 如果有未完成的面试，可以添加确认提示
+    if (currentInterviewer.value) {
+      const confirmed = await showConfirmDialog(
+        '结束面试',
+        '确定要返回主页吗？当前面试进度将会保存。'
+      )
+      if (!confirmed) return
+    }
+    
+    // 使用 replace 替换当前路由历史
+    await router.replace('/home')
+    
+    // 强制刷新页面
+    window.location.reload()
+  } catch (error) {
+    console.error('Navigation error:', error)
+  }
+}
+
+// 确认对话框
+const showConfirmDialog = (title, message) => {
+  return new Promise((resolve) => {
+    const result = window.confirm(message)
+    resolve(result)
+  })
+}
 </script>
 
 <style scoped>
@@ -600,10 +630,38 @@ const toggleFullscreen = () => {
   padding: 16px 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  position: relative;
+}
+
+.header-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.header-title h1 {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--vt-c-text-light-1);
+  margin: 0;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.header-title .subtitle {
+  font-size: 14px;
+  color: var(--vt-c-text-light-2);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  opacity: 0.85;
 }
 
 .header-actions {
+  margin-left: auto;
   display: flex;
   gap: 12px;
 }
@@ -957,241 +1015,6 @@ textarea {
 .send-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(79, 110, 247, 0.2);
-}
-
-.header-title {
-  display: flex;
-  flex-direction: column;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.interview-stats {
-  display: flex;
-  justify-content: space-around;
-  padding: 16px 0;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
-  margin: 16px 0;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: #4F6EF7;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.step {
-  position: relative;
-  padding: 16px;
-  border-radius: 12px;
-  background: #f8faff;
-  margin-bottom: 16px;
-  transition: all 0.3s ease;
-}
-
-.step-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #ccc;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-}
-
-.step.completed .step-icon {
-  background: #4CAF50;
-}
-
-.step.active .step-icon {
-  background: #4F6EF7;
-}
-
-.step-line {
-  position: absolute;
-  left: 24px;
-  bottom: -16px;
-  width: 2px;
-  height: 16px;
-  background: #eee;
-}
-
-.step.completed .step-line {
-  background: #4CAF50;
-}
-
-.step.active .step-line {
-  background: #4F6EF7;
-}
-
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.end-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid #ff4d4f;
-  color: #ff4d4f;
-  background: white;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.end-btn:hover {
-  background: #fff1f0;
-}
-
-.avatar-wrapper {
-  position: relative;
-  width: 80px;
-  height: 80px;
-}
-
-.online-indicator {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #22c55e;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* 添加新样式 */
-.guidance-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-}
-
-.guidance-content {
-  background: white;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.guidance-header {
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.guidance-header h3 {
-  font-size: 20px;
-  color: #333;
-  margin: 0;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: #666;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  color: #333;
-  transform: rotate(90deg);
-}
-
-.guidance-body {
-  padding: 20px;
-}
-
-.tip-section {
-  margin-bottom: 24px;
-}
-
-.tip-section h4 {
-  color: #4F6EF7;
-  margin-bottom: 12px;
-  font-size: 16px;
-}
-
-.tip-section ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.tip-section li {
-  position: relative;
-  padding-left: 24px;
-  margin-bottom: 12px;
-  color: #666;
-  line-height: 1.5;
-}
-
-.tip-section li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 8px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #4F6EF7;
-}
-
-/* 响应式优化 */
-@media (max-width: 768px) {
-  .interview-layout {
-    grid-template-columns: 1fr;
-  }
-  
-  .interview-sidebar {
-    display: none;
-  }
-  
-  .guidance-content {
-    width: 95%;
-    margin: 10px;
-  }
 }
 
 .interview-status {

@@ -70,6 +70,17 @@
               </svg>
             </button>
           </div>
+          <button 
+            class="voice-call-btn"
+            :class="{ 'calling': showCallModal }"
+            @click="startCall"
+            title="语音通话"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path fill="currentColor" d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </button>
         </div>
       </div>
     </header>
@@ -115,13 +126,18 @@
             <div class="message-info">
               <span class="sender">{{ message.role === 'assistant' ? interviewer?.name : '我' }}</span>
               <span class="time">{{ formatTime(message.timestamp) }}</span>
-              <button v-if="message.role === 'assistant'"
-                        class="audio-control"
-                        @click="toggleMessageAudio(message)"
-                        :class="{ 'playing': speaking }">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                  <path v-if="speaking" fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                  <path v-else fill="currentColor" d="M8 5v14l11-7z"/>
+              <button 
+                v-if="message.role === 'assistant' && message.content"
+                class="audio-control"
+                :class="{ 'playing': isPlayingMessage === index }"
+                @click="playMessageAudio(message, index)"
+                title="播放语音"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="currentColor" :d="isPlayingMessage === index 
+                    ? 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z'
+                    : 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z'
+                  "/>
                 </svg>
               </button>
             </div>
@@ -203,6 +219,53 @@
         </button>
       </div>
     </footer>
+
+    <div v-if="showCallModal" class="call-modal" @click.self="endCall">
+      <div class="call-content">
+        <div class="caller-avatar">
+          <img :src="interviewer?.avatar" :alt="interviewer?.name">
+          <div class="avatar-pulse"></div>
+        </div>
+        
+        <div class="call-status">
+          <div class="wave-container">
+            <div class="wave"></div>
+            <div class="wave"></div>
+            <div class="wave"></div>
+            <div class="wave"></div>
+            <div class="wave"></div>
+          </div>
+          <p class="status-text">{{ recognizedText || '请开始说话...' }}</p>
+        </div>
+
+        <div class="call-controls">
+          <div class="control-group">
+            <button 
+              class="control-btn mute"
+              :class="{ active: isPaused }"
+              @click="toggleRecognition"
+              title="暂停识别"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              </svg>
+              <span class="btn-label">{{ isPaused ? '继续' : '暂停' }}</span>
+            </button>
+            
+            <button 
+              class="control-btn end-call"
+              @click="endCall"
+              title="结束通话"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.73-1.68-1.36-2.66-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+              </svg>
+              <span class="btn-label">结束</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -541,6 +604,9 @@ const speak = async (text) => {
   }
 }
 
+// 添加播放状态控制
+const isPlayingMessage = ref(null)
+
 // 修改消息发送和接收逻辑
 const handleStreamResponse = async (response, updateCallback) => {
   const reader = response.body.getReader()
@@ -558,8 +624,7 @@ const handleStreamResponse = async (response, updateCallback) => {
       buffer = lines.pop() || ''
       
       for (const line of lines) {
-        if (line.trim() === '') continue
-        if (!line.startsWith('data:')) continue
+        if (line.trim() === '' || !line.startsWith('data:')) continue
         
         const data = JSON.parse(line.slice(5))
         if (data.event === 'message' && !data.is_finish) {
@@ -569,12 +634,13 @@ const handleStreamResponse = async (response, updateCallback) => {
       }
     }
     
-    // 完整回复后播放语音
-    if (fullResponse.trim()) {
+    // 如果在通话状态下，自动播放回复
+    if (isInCall.value && fullResponse.trim()) {
+      lastPlayedTimestamp = Date.now() // 记录播放时间
       try {
         await speak(fullResponse)
       } catch (error) {
-        console.error('语音合成失败:', error)
+        console.error('语音播放失败:', error)
       }
     }
     
@@ -584,10 +650,32 @@ const handleStreamResponse = async (response, updateCallback) => {
   }
 }
 
-// 修改组件卸载时的清理
+// 播放消息语音
+const playMessageAudio = async (message, index) => {
+  if (isPlayingMessage.value === index) {
+    stopSpeaking()
+    isPlayingMessage.value = null
+    return
+  }
+  
+  // 如果有其他消息正在播放，先停止
+  if (isPlayingMessage.value !== null) {
+    stopSpeaking()
+  }
+  
+  try {
+    isPlayingMessage.value = index
+    await speak(message.content)
+  } catch (error) {
+    console.error('语音播放失败:', error)
+    alert('语音播放失败，请重试')
+  }
+}
+
+// 组件卸载时清理
 onUnmounted(() => {
   stopSpeaking()
-  URL.revokeObjectURL(audio.value.src)
+  isPlayingMessage.value = null
 })
 
 // 修改切换录音状态时的处理
@@ -597,15 +685,6 @@ const toggleRecording = () => {
     startRecording()
   } else {
     stopRecording()
-  }
-}
-
-// 添加消息组件的播放控制
-const toggleMessageAudio = (message) => {
-  if (speaking.value) {
-    stopSpeaking()
-  } else if (message.role === 'assistant') {
-    speak(message.content)
   }
 }
 
@@ -659,21 +738,18 @@ const initializeInterview = async () => {
 }
 
 // 修改发送消息逻辑
-const sendMessage = async () => {
-  if (!currentMessage.value.trim() || isLoading.value) return
+const sendMessage = async (text) => {
+  if (!text?.trim()) return
   
-  const messageContent = currentMessage.value
-  currentMessage.value = ''
-  isLoading.value = true
+  const message = {
+    role: 'user',
+    content: text,
+    timestamp: Date.now()
+  }
+  
+  messages.value.push(message)
   
   try {
-    const userMessage = {
-      role: 'user',
-      content: messageContent,
-      timestamp: Date.now()
-    }
-    messages.value.push(userMessage)
-    
     let currentResponse = ''
     messages.value.push({
       role: 'assistant',
@@ -688,7 +764,7 @@ const sendMessage = async () => {
         conversation_id: conversationId.value,
         bot_id: COZE_API.BOT_ID,
         user: COZE_API.USER_ID,
-        query: messageContent,
+        query: text,
         stream: true,
         custom_variables: {
           bot_name: "java面试官"
@@ -716,8 +792,6 @@ const sendMessage = async () => {
       content: '消息发送失败，请重试',
       timestamp: Date.now()
     })
-  } finally {
-    isLoading.value = false
   }
 }
 
@@ -906,10 +980,248 @@ const stopRecording = () => {
     
     // 如果有识别出的文字，自动发送
     if (currentMessage.value.trim()) {
-      sendMessage()
+      sendMessage(currentMessage.value)
     }
   }
 }
+
+// 语音通话相关状态
+const showCallModal = ref(false)
+const isPaused = ref(false)
+const recognizedText = ref('')
+const callStartTime = ref(null)
+const callStatus = ref('正在连接...')
+const localStream = ref(null)
+const peerConnection = ref(null)
+
+// 格式化通话时长
+const formatCallDuration = computed(() => {
+  if (!callStartTime.value) return '00:00'
+  const duration = Math.floor((Date.now() - callStartTime.value) / 1000)
+  const minutes = Math.floor(duration / 60)
+  const seconds = duration % 60
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+})
+
+// 初始化WebRTC连接
+const initializeCall = async () => {
+  try {
+    // 获取本地音频流
+    localStream.value = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
+    })
+
+    // 创建RTCPeerConnection
+    peerConnection.value = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
+    })
+
+    // 添加本地流
+    localStream.value.getTracks().forEach(track => {
+      peerConnection.value.addTrack(track, localStream.value)
+    })
+
+    // 监听远程流
+    peerConnection.value.ontrack = (event) => {
+      const remoteAudio = new Audio()
+      remoteAudio.srcObject = event.streams[0]
+      remoteAudio.play()
+    }
+
+    // 更新状态
+    showCallModal.value = true
+    isInCall.value = true
+    callStartTime.value = Date.now()
+    callStatus.value = '通话中'
+  } catch (error) {
+    console.error('Failed to initialize call:', error)
+    alert('无法启动语音通话，请检查麦克风权限')
+  }
+}
+
+// 开始/结束通话
+const toggleVoiceCall = async () => {
+  if (!isInCall.value) {
+    await initializeCall()
+  } else {
+    endCall()
+  }
+}
+
+// 结束通话
+const endCall = () => {
+  if (recognition.value) {
+    recognition.value.stop()
+  }
+  if (recognitionTimeout) {
+    clearTimeout(recognitionTimeout)
+  }
+
+  showCallModal.value = false
+  isInCall.value = false
+  isPaused.value = false
+  recognizedText.value = ''
+  stopSpeaking()
+}
+
+// 语音识别相关
+const recognition = ref(null)
+const isInCall = ref(false)
+let recognitionTimeout = null
+let lastPlayedTimestamp = 0 // 用于追踪最后一次播放的时间
+let isPlayingAssistantAudio = false // 新增：标记是否正在播放面试官语音
+
+// 修改语音识别初始化
+const initSpeechRecognition = () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SpeechRecognition) {
+    alert('您的浏览器不支持语音识别功能')
+    return false
+  }
+  
+  recognition.value = new SpeechRecognition()
+  recognition.value.continuous = true
+  recognition.value.interimResults = true
+  recognition.value.lang = 'zh-CN'
+  
+  // 设置音频源为麦克风
+  navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true, // 启用回声消除
+      noiseSuppression: true, // 启用噪声抑制
+      autoGainControl: true,  // 自动增益控制
+      // 明确指定音频源为麦克风
+      deviceId: 'default',
+      // 排除系统声音
+      suppressLocalAudioPlayback: true,
+      // 指定为语音优化
+      sampleRate: 16000,
+      channelCount: 1
+    },
+    video: false
+  }).then(stream => {
+    // 保存音频流引用以便后续清理
+    mediaStream.value = stream
+  }).catch(error => {
+    console.error('获取麦克风失败:', error)
+    alert('无法访问麦克风，请检查权限设置')
+  })
+
+  recognition.value.onresult = (event) => {
+    const result = event.results[event.results.length - 1]
+    
+    // 增强过滤逻辑：检查是否正在播放面试官语音
+    if (isPlayingAssistantAudio || currentPlayingAudio.value) {
+      return // 如果正在播放面试官语音，直接忽略识别结果
+    }
+    
+    // 检查时间戳
+    const currentTime = Date.now()
+    if (currentTime - lastPlayedTimestamp < 2000) { // 2秒缓冲时间
+      return
+    }
+    
+    recognizedText.value = result[0].transcript
+    
+    if (result.isFinal && recognizedText.value.trim()) {
+      // 再次检查是否在播放语音
+      if (isPlayingAssistantAudio || currentPlayingAudio.value) {
+        recognizedText.value = ''
+        return
+      }
+      
+      if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout)
+      }
+      
+      recognitionTimeout = setTimeout(() => {
+        sendMessage(recognizedText.value)
+        recognizedText.value = ''
+      }, 1000)
+    }
+  }
+  
+  return true
+}
+
+// 添加音频流引用
+const mediaStream = ref(null)
+
+// 修改开始通话函数
+const startCall = async () => {
+  try {
+    if (!recognition.value && !initSpeechRecognition()) {
+      return
+    }
+    
+    showCallModal.value = true
+    isInCall.value = true
+    
+    try {
+      await recognition.value.start()
+    } catch (error) {
+      if (error.name === 'NotAllowedError') {
+        alert('请允许访问麦克风以开始语音通话')
+      } else {
+        console.error('启动语音识别失败:', error)
+        alert('启动语音识别失败，请重试')
+      }
+      showCallModal.value = false
+      isInCall.value = false
+    }
+  } catch (error) {
+    console.error('初始化语音识别失败:', error)
+    alert('初始化语音识别失败，请确保使用支持的浏览器')
+  }
+}
+
+// 暂停/继续识别
+const toggleRecognition = () => {
+  if (isPaused.value) {
+    recognition.value.start()
+  } else {
+    recognition.value.stop()
+  }
+  isPaused.value = !isPaused.value
+}
+
+// 重启识别
+const restartRecognition = () => {
+  if (!isPaused.value) {
+    recognition.value.stop()
+    setTimeout(() => {
+      recognition.value.start()
+    }, 100)
+  }
+}
+
+// 组件卸载时清理资源
+onUnmounted(() => {
+  endCall()
+  if (currentPlayingAudio.value) {
+    currentPlayingAudio.value = null
+  }
+  isPlayingMessage.value = null
+  isPlayingAssistantAudio = false
+  // 确保音频流被清理
+  if (mediaStream.value) {
+    mediaStream.value.getTracks().forEach(track => track.stop())
+    mediaStream.value = null
+  }
+})
+
+// 通话状态文本
+const callStatusText = computed(() => {
+  if (!isInCall.value) return '正在连接...'
+  if (isPaused.value) return '已暂停'
+  return '正在通话中'
+})
+
+// 语音播放相关状态
+const currentPlayingAudio = ref(null)
 </script>
 
 <style scoped>
@@ -1664,15 +1976,16 @@ textarea::placeholder {
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
+  margin-left: 8px;
 }
 
 .audio-control:hover {
   background: rgba(79, 110, 247, 0.1);
-  color: #4F6EF7;
+  color: var(--primary-color);
 }
 
 .audio-control.playing {
-  color: #4F6EF7;
+  color: var(--primary-color);
   background: rgba(79, 110, 247, 0.1);
 }
 
@@ -1680,5 +1993,210 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.voice-call-btn {
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-call-btn:hover {
+  background: rgba(79, 110, 247, 0.1);
+  color: var(--primary-color);
+}
+
+.voice-call-btn.calling {
+  background: var(--primary-color);
+  color: white;
+}
+
+.voice-call-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.call-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.call-content {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  width: 320px;
+  text-align: center;
+  animation: slideIn 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.caller-avatar {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.caller-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-pulse {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-color);
+  opacity: 0;
+  animation: pulse 2s infinite;
+}
+
+.avatar-pulse::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-color);
+  opacity: 0;
+  animation: pulse 2s infinite 1s;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+.pulse-2 {
+  animation-delay: 0.6s;
+}
+
+.pulse-3 {
+  animation-delay: 1.2s;
+}
+
+.wave-container {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.wave {
+  width: 3px;
+  height: 100%;
+  background: var(--primary-color);
+  animation: wave 1.2s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+.wave:nth-child(2) { animation-delay: 0.1s; }
+.wave:nth-child(3) { animation-delay: 0.2s; }
+.wave:nth-child(4) { animation-delay: 0.3s; }
+.wave:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.2); }
+  50% { transform: scaleY(1); }
+}
+
+.call-controls {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.control-group {
+  display: flex;
+  gap: 20px;
+  background: #f5f7ff;
+  padding: 12px 24px;
+  border-radius: 16px;
+}
+
+.control-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.btn-label {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.status-text {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style> 

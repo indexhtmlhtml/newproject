@@ -1059,7 +1059,12 @@ const endCall = () => {
   if (recognitionTimeout) {
     clearTimeout(recognitionTimeout)
   }
-
+  // 停止并清理音频流
+  if (mediaStream.value) {
+    mediaStream.value.getTracks().forEach(track => track.stop())
+    mediaStream.value = null
+  }
+  
   showCallModal.value = false
   isInCall.value = false
   isPaused.value = false
@@ -1144,6 +1149,45 @@ const initSpeechRecognition = () => {
     }
   }
   
+  // 添加识别结束事件处理
+  recognition.value.onend = () => {
+    // 如果不是暂停状态且通话仍在进行，则自动重启识别
+    if (!isPaused.value && showCallModal.value) {
+      // 清除之前的重启定时器
+      if (autoRestartTimeout) {
+        clearTimeout(autoRestartTimeout)
+      }
+      // 设置新的重启定时器
+      autoRestartTimeout = setTimeout(() => {
+        try {
+          recognition.value.start()
+        } catch (error) {
+          console.error('重启语音识别失败:', error)
+        }
+      }, 100) // 短暂延迟后重启
+    }
+  }
+
+  // 添加错误处理
+  recognition.value.onerror = (event) => {
+    console.error('语音识别错误:', event.error)
+    if (event.error === 'no-speech') {
+      // 无语音输入时自动重启
+      if (!isPaused.value && showCallModal.value) {
+        if (autoRestartTimeout) {
+          clearTimeout(autoRestartTimeout)
+        }
+        autoRestartTimeout = setTimeout(() => {
+          try {
+            recognition.value.start()
+          } catch (error) {
+            console.error('重启语音识别失败:', error)
+          }
+        }, 100)
+      }
+    }
+  }
+
   return true
 }
 
@@ -1180,12 +1224,21 @@ const startCall = async () => {
 
 // 暂停/继续识别
 const toggleRecognition = () => {
-  if (isPaused.value) {
-    recognition.value.start()
-  } else {
-    recognition.value.stop()
-  }
   isPaused.value = !isPaused.value
+  if (isPaused.value) {
+    recognition.value.stop()
+    // 清除重启定时器
+    if (autoRestartTimeout) {
+      clearTimeout(autoRestartTimeout)
+      autoRestartTimeout = null
+    }
+  } else {
+    try {
+      recognition.value.start()
+    } catch (error) {
+      console.error('重启语音识别失败:', error)
+    }
+  }
 }
 
 // 重启识别
@@ -1201,16 +1254,15 @@ const restartRecognition = () => {
 // 组件卸载时清理资源
 onUnmounted(() => {
   endCall()
+  if (autoRestartTimeout) {
+    clearTimeout(autoRestartTimeout)
+    autoRestartTimeout = null
+  }
   if (currentPlayingAudio.value) {
     currentPlayingAudio.value = null
   }
   isPlayingMessage.value = null
   isPlayingAssistantAudio = false
-  // 确保音频流被清理
-  if (mediaStream.value) {
-    mediaStream.value.getTracks().forEach(track => track.stop())
-    mediaStream.value = null
-  }
 })
 
 // 通话状态文本

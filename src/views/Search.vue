@@ -1,5 +1,5 @@
 <template>
-  <div class="search-container">
+  <div class="search-container" v-show="isPageReady">
     <header class="header">
       <div class="header-content">
         <div class="left-section">
@@ -7,19 +7,48 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
               <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
             </svg>
-            <span>返回</span>
+            <span class="btn-text">返回主页</span>
+            <span class="btn-hover">← Back</span>
           </button>
         </div>
         <div class="center-section">
-          <h1>AI 全网搜索</h1>
-          <p class="subtitle">通过 AI 技术提供智能搜索服务</p>
+          <h1>
+            <span class="title-highlight">AI</span> 全网搜索
+            <span class="title-decoration"></span>
+          </h1>
+          <p class="subtitle">
+            <span class="ai-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M21.67 18.17l-5.3-5.3h-.99l-2.54 2.54v.99l5.3 5.3c.39.39 1.02.39 1.41 0l2.12-2.12c.39-.38.39-1.02 0-1.41zm-2.83 1.42l-4.24-4.24.71-.71 4.24 4.24-.71.71z"/>
+                <path fill="currentColor" d="M17.34 10.19l1.41-1.41 2.12 2.12c1.17-1.17 1.17-3.07 0-4.24l-3.54-3.54-1.41 1.41V1.71l-.7-.71-3.54 3.54.71.71h2.83l-1.41 1.41 1.06 1.06-2.89 2.89-4.13-4.13V5.06L4.83 2.04 2 4.87 5.03 7.9h1.41l4.13 4.13-.85.85H7.6l-5.3 5.3c-.39.39-.39 1.02 0 1.41l2.12 2.12c.39.39 1.02.39 1.41 0l5.3-5.3v-2.12l5.15-5.15 1.06 1.05zm-7.98 5.15l-4.24 4.24-.71-.71 4.24-4.24.71.71z"/>
+              </svg>
+              AI 驱动
+            </span>
+            <span class="divider">·</span>
+            <span class="feature-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
+                <path fill="currentColor" d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+              </svg>
+              实时搜索
+            </span>
+            <span class="divider">·</span>
+            <span class="feature-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path fill="currentColor" d="M7 12h2v5H7zm4-7h2v12h-2zm4 4h2v8h-2z"/>
+              </svg>
+              智能分析
+            </span>
+          </p>
         </div>
         <div class="right-section">
           <button class="nav-btn" @click="toggleFullscreen">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
               <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
             </svg>
-            <span>全屏模式</span>
+            <span class="btn-text">全屏</span>
+            <span class="btn-hover">全屏模式</span>
           </button>
         </div>
       </div>
@@ -36,7 +65,7 @@
           <input 
             type="text" 
             v-model="searchQuery"
-            placeholder="输入关键词，按回车搜索..."
+            placeholder="您想要什么题目，直接告诉我吧..."
             class="search-input"
             @keyup.enter="handleSearch"
             @input="handleInput"
@@ -52,24 +81,9 @@
             @click="handleSearch" 
             :disabled="isSearching || !searchQuery.trim()"
           >
-            <span v-if="!isSearching">搜索</span>
+            <div v-if="!isSearching" class="search-btn-text">搜索</div>
             <div v-else class="spinner"></div>
           </button>
-        </div>
-
-        <!-- 搜索建议 -->
-        <div v-if="showSuggestions && suggestions.length > 0" class="search-suggestions">
-          <div 
-            v-for="suggestion in suggestions" 
-            :key="suggestion"
-            class="suggestion-item"
-            @click="selectSuggestion(suggestion)"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M7 9H2V7h5v2zm0 3H2v2h5v-2zm13.59 7-3.83-3.83c-.8.52-1.74.83-2.76.83-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5c0 1.02-.31 1.96-.83 2.75L22 17.59 20.59 19zM17 11c0-1.65-1.35-3-3-3s-3 1.35-3 3 1.35 3 3 3 3-1.35 3-3zM2 19h10v-2H2v2z"/>
-            </svg>
-            {{ suggestion }}
-          </div>
         </div>
 
         <div class="search-filters">
@@ -157,16 +171,10 @@
             <!-- 搜索结果内容 -->
             <div v-else-if="streamedContent.length > 0" class="results-list" ref="responseContainer">
               <div class="response-content">
-                <TransitionGroup 
-                  name="result"
-                  tag="div"
-                  class="results-wrapper"
-                >
-                  <template v-for="(line, index) in streamedContent" :key="index">
-                    <div :class="getLineClass(line)" class="content-line" v-html="formatLine(line)">
-                    </div>
-                  </template>
-                </TransitionGroup>
+                <template v-for="(line, index) in streamedContent" :key="index">
+                  <div :class="getLineClass(line)" class="content-line" v-html="formatLine(line)">
+                  </div>
+                </template>
               </div>
             </div>
             <!-- 空状态 -->
@@ -201,10 +209,13 @@
       </div>
     </main>
   </div>
+  <div v-if="!isPageReady" class="page-loading">
+    <div class="loading-spinner"></div>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -224,6 +235,8 @@ let currentResponse = ''
 const currentScope = ref('all')
 const currentTimeRange = ref('all')
 const currentLimit = ref('all')
+
+const isPageReady = ref(false)
 
 // Coze API 配置
 const COZE_API_URL = 'https://api.coze.cn/open_api/v2/chat'
@@ -267,56 +280,25 @@ const toggleFullscreen = () => {
 
 // 处理输入
 const handleInput = () => {
-  if (searchTimeout) {
-    clearTimeout(searchTimeout)
-  }
-  
-  if (!searchQuery.value.trim()) {
-    showSuggestions.value = false
-    return
-  }
-  
-  searchTimeout = setTimeout(async () => {
-    // TODO: 实际项目中这里应该调用API获取搜索建议
-    suggestions.value = [
-      `${searchQuery.value} 教程`,
-      `${searchQuery.value} 实例`,
-      `${searchQuery.value} 最佳实践`,
-      `${searchQuery.value} 面试题`
-    ]
-    showSuggestions.value = true
-  }, 300)
-}
-
-// 选择搜索建议
-const selectSuggestion = (suggestion) => {
-  searchQuery.value = suggestion
+  // 清空搜索建议
   showSuggestions.value = false
-  handleSearch()
 }
 
 // 清空搜索
 const clearSearch = () => {
   searchQuery.value = ''
-  showSuggestions.value = false
   searchInput.value?.focus()
-}
-
-// 点击外部关闭建议
-const handleClickOutside = (event) => {
-  const searchBox = document.querySelector('.search-box')
-  if (searchBox && !searchBox.contains(event.target)) {
-    showSuggestions.value = false
-  }
 }
 
 onMounted(() => {
-  searchInput.value?.focus()
-  document.addEventListener('click', handleClickOutside)
+  // 延迟显示页面内容，等待之前的页面完全消失
+  setTimeout(() => {
+    isPageReady.value = true
+    searchInput.value?.focus()
+  }, 100)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
@@ -455,21 +437,8 @@ const handleSearch = async () => {
                   .trim()
                   .replace(/\n{3,}/g, '\n\n')
                 
-                // 更新流式内容，添加延迟展示效果
-                const lines = processedResults.split('\n')
-                streamedContent.value = []
-                for (let i = 0; i < lines.length; i++) {
-                  if (lines[i].trim()) {
-                    setTimeout(() => {
-                      streamedContent.value.push(lines[i])
-                      nextTick(() => {
-                        if (responseContainer.value) {
-                          responseContainer.value.scrollTop = responseContainer.value.scrollHeight
-                        }
-                      })
-                    }, i * 100) // 每个结果间隔 100ms
-                  }
-                }
+                // 更新流式内容
+                streamedContent.value = processedResults.split('\n')
                 
                 // 处理相关问题
                 const questionsList = questions
@@ -481,15 +450,7 @@ const handleSearch = async () => {
                 aiSuggestedQuestions.value = questionsList
               } else {
                 // 直接更新流式内容
-                const lines = currentResponse.split('\n')
-                streamedContent.value = []
-                for (let i = 0; i < lines.length; i++) {
-                  if (lines[i].trim()) {
-                    setTimeout(() => {
-                      streamedContent.value.push(lines[i])
-                    }, i * 100)
-                  }
-                }
+                streamedContent.value = currentResponse.split('\n')
               }
               
               // 滚动到底部
@@ -560,6 +521,8 @@ watch(searchQuery, () => {
   background: var(--vt-c-bg);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   letter-spacing: -0.2px;
+  animation: fadeIn 0.3s ease;
+  padding-top: -3px;
 }
 
 .header {
@@ -570,20 +533,23 @@ watch(searchQuery, () => {
   z-index: 100;
   border-bottom: 1px solid rgba(79, 110, 247, 0.1);
   backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  margin-top: -4px;
 }
 
 .header-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 16px 24px;
+  padding: 8px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
 }
 
 .left-section {
-  display: flex;
-  align-items: center;
+  flex: 0 0 auto;
 }
 
 .nav-btn {
@@ -598,25 +564,55 @@ watch(searchQuery, () => {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 14px;
+  position: relative;
+  height: 36px;
 }
 
-.nav-btn:hover {
-  border-color: #4F6EF7;
-  color: #4F6EF7;
-  background: rgba(79, 110, 247, 0.1);
+.nav-btn .btn-text,
+.nav-btn .btn-hover {
+  position: absolute;
+  left: 40px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.nav-btn .btn-text {
+  transform: translateY(0) translateX(0);
+  opacity: 1;
+}
+
+.nav-btn .btn-hover {
+  opacity: 0;
+  transform: translateY(0) translateX(-10px);
+}
+
+.nav-btn:hover .btn-text {
+  opacity: 0;
+  transform: translateY(0) translateX(10px);
+}
+
+.nav-btn:hover .btn-hover {
+  opacity: 1;
+  transform: translateY(0) translateX(0);
+}
+
+.nav-btn svg {
+  position: absolute;
+  left: 12px;
+  width: 24px;
+  height: 24px;
 }
 
 .center-section {
+  flex: 1;
   text-align: center;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  min-width: 0;
 }
 
 .center-section h1 {
   font-size: 20px;
   font-weight: 600;
-  color: var(--vt-c-primary);
+  color: #333;
   margin: 0;
   margin-bottom: 4px;
   position: relative;
@@ -625,28 +621,39 @@ watch(searchQuery, () => {
   letter-spacing: 0.5px;
 }
 
-.center-section h1::after {
-  content: '';
+.title-highlight {
+  color: var(--vt-c-primary);
+  background: linear-gradient(135deg, var(--vt-c-primary), var(--vt-c-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding-right: 4px;
+}
+
+.title-decoration {
   position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 2px;
-  background: var(--vt-c-primary);
-  border-radius: 2px;
+  top: -8px;
+  right: -12px;
+  width: 20px;
+  height: 20px;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%234F6EF7" d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg>') no-repeat center;
+  opacity: 0.2;
+  transform: rotate(-15deg);
 }
 
 .center-section .subtitle {
   font-size: 14px;
   color: #666;
   margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-top: 0;
 }
 
 .right-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  flex: 0 0 auto;
 }
 
 .nav-btn {
@@ -657,23 +664,56 @@ watch(searchQuery, () => {
   color: var(--vt-c-text-light-2);
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
+  width: 40px;
+  height: 36px;
+  overflow: hidden;
+}
+
+.nav-btn .btn-text,
+.nav-btn .btn-hover {
+  position: absolute;
+  left: 40px;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.nav-btn .btn-text {
+  opacity: 0;
+}
+
+.nav-btn .btn-hover {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 
 .nav-btn:hover {
+  width: 100px;
   background: rgba(79, 110, 247, 0.1);
   color: var(--vt-c-primary);
+}
+
+.nav-btn:hover .btn-hover {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.nav-btn svg {
+  position: absolute;
+  left: 10px;
+  top: 8px;
 }
 
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: 8px 24px 32px;
 }
 
 .search-box {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px;
   position: relative;
 }
 
@@ -699,11 +739,30 @@ watch(searchQuery, () => {
   border: 1px solid #eee;
   transition: all 0.3s ease;
   margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  height: 56px;
 }
 
-.search-input-wrapper:hover {
-  transform: translateY(-2px);
+.search-input-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, var(--vt-c-primary), var(--vt-c-secondary));
+  border-radius: 14px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.search-input-wrapper:focus-within::before {
+  opacity: 0.5;
+}
+
+.search-input-wrapper:focus-within {
   box-shadow: 0 8px 30px rgba(79, 110, 247, 0.15);
+  border-color: var(--vt-c-primary);
+  transform: translateY(-1px);
 }
 
 .search-icon {
@@ -716,63 +775,88 @@ watch(searchQuery, () => {
 
 .clear-btn {
   position: absolute;
-  right: 120px;
+  right: 100px;
   top: 50%;
   transform: translateY(-50%);
-  padding: 4px;
   cursor: pointer;
-  color: var(--vt-c-text-light-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   transition: all 0.3s ease;
+  color: #999;
+  z-index: 2;
 }
 
-.clear-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--vt-c-text-light-1);
+.search-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 8px 24px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--vt-c-primary), var(--vt-c-secondary));
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-left: 8px;
+  min-width: 80px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.2);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-btn-text {
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.search-btn:hover {
+  transform: translateY(-50%) scale(1.02);
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.3);
 }
 
 .search-input {
-  flex: 1;
-  padding: 12px 20px;
-  padding-left: 48px;
+  width: 100%;
+  padding: 12px 140px 12px 48px;
   border: none;
-  border-radius: 12px;
+  outline: none;
   font-size: 15px;
+  background: transparent;
+  color: #333;
   font-family: inherit;
-  transition: all 0.3s ease;
-  background: var(--vt-c-white);
-  color: var(--vt-c-text-light-1);
-  letter-spacing: -0.3px;
 }
 
 .search-input:focus {
   outline: none;
 }
 
-.search-btn {
-  margin-left: 8px;
-  margin-right: 8px;
-  padding: 8px 24px;
-  background: linear-gradient(135deg, var(--vt-c-primary), var(--vt-c-secondary));
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 80px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.search-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: 0.5s;
 }
 
-.search-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--vt-c-secondary), var(--vt-c-primary));
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.2);
+.search-btn:hover::before {
+  left: 100%;
 }
 
 .search-btn:disabled {
@@ -838,16 +922,38 @@ watch(searchQuery, () => {
 
 .filter-btn {
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #eee;
   border-radius: 20px;
-  background: transparent;
+  background: white;
   color: #666;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
+  transition: all 0.3s ease;
+  font-size: 13px;
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(8px);
+}
+
+.filter-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(79, 110, 247, 0.1), transparent);
+  transition: 0.5s;
+}
+
+.filter-btn:hover::before {
+  left: 100%;
+}
+
+.filter-btn.active {
+  background: rgba(79, 110, 247, 0.1);
+  color: var(--vt-c-primary);
+  border-color: var(--vt-c-primary);
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.1);
 }
 
 .filter-btn:hover {
@@ -856,30 +962,11 @@ watch(searchQuery, () => {
   background: rgba(79, 110, 247, 0.05);
 }
 
-.filter-btn.active {
-  background: rgba(79, 110, 247, 0.15);
-  color: var(--vt-c-primary);
-  border-color: var(--vt-c-primary);
-  opacity: 1 !important;
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(79, 110, 247, 0.1);
-}
-
-.filter-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 2px;
-  background: var(--vt-c-primary);
-  border-radius: 2px;
-}
-
 .search-results {
   display: grid;
   gap: 16px;
+  margin-top: 24px;
+  position: relative;
 }
 
 .result-card {
@@ -995,60 +1082,6 @@ watch(searchQuery, () => {
   right: -100px;
 }
 
-.search-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 104px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-top: 4px;
-  z-index: 100;
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #eee;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--vt-c-text-light-2);
-}
-
-.suggestion-item:hover {
-  background: var(--vt-c-bg-mute);
-  color: var(--vt-c-text-light-1);
-}
-
-.suggestion-item svg {
-  opacity: 0.5;
-}
-
-.suggestion-item:hover svg {
-  opacity: 1;
-}
-
-@media (max-width: 768px) {
-  .search-filters {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
-  .filter-options {
-    overflow-x: auto;
-    padding-bottom: 8px;
-  }
-  
-  .filter-btn {
-    white-space: nowrap;
-  }
-}
-
 .results-container {
   display: grid;
   grid-template-columns: 1fr 300px;
@@ -1068,16 +1101,8 @@ watch(searchQuery, () => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   position: relative;
   overflow: hidden;
-}
-
-.search-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(to right, var(--vt-c-primary), var(--vt-c-secondary));
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
 }
 
 .search-header {
@@ -1169,6 +1194,7 @@ watch(searchQuery, () => {
   background: white;
   padding: 20px;
   border-radius: 12px;
+  margin: 16px 0;
   box-shadow: 0 4px 20px rgba(79, 110, 247, 0.05);
   border: 1px solid #eee;
   transition: all 0.3s ease;
@@ -1180,25 +1206,53 @@ watch(searchQuery, () => {
   gap: 12px;
   font-size: 15px;
   line-height: 1.7;
-  animation: slideIn 0.5s ease forwards;
-  opacity: 0;
-  transform: translateY(20px);
+  transform-origin: center;
+  will-change: transform;
 }
 
-@keyframes slideIn {
-  to {
-    opacity: 1;
+.result-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--vt-c-primary), var(--vt-c-secondary));
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.result-item:hover::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%234F6EF7" opacity="0.2" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2z"/></svg>') no-repeat center;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.result-item:hover {
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: 0 8px 30px rgba(79, 110, 247, 0.15);
+  border-color: var(--vt-c-primary);
+  background: white;
+}
+
+@keyframes float {
+  0%, 100% {
     transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
   }
 }
 
-.source-line, .time-line {
-  font-size: 14px;
-  color: var(--vt-c-text-light-2);
-  padding: 4px 0;
-  animation: fadeIn 0.3s ease forwards;
-  animation-delay: 0.2s;
-  opacity: 0;
+.empty-state svg {
+  animation: float 3s ease-in-out infinite;
+  margin-bottom: 16px;
 }
 
 .related-content {
@@ -1421,35 +1475,177 @@ watch(searchQuery, () => {
   animation: shimmer 2s infinite linear;
 }
 
-/* 搜索结果动画 */
-.result-move,
-.result-enter-active,
-.result-leave-active {
+.page-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--vt-c-bg);
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(79, 110, 247, 0.1);
+  border-top-color: var(--vt-c-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--vt-c-primary);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+  opacity: 0.6;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.ai-badge,
+.feature-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  transform-origin: center;
   transition: all 0.3s ease;
 }
 
-.result-enter-from {
-  opacity: 0;
-  transform: translateX(-20px);
+.ai-badge {
+  background: rgba(0, 0, 0, 0.04);
+  color: #666;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.result-leave-to {
-  opacity: 0;
-  transform: translateX(20px);
+.feature-badge {
+  background: rgba(0, 0, 0, 0.04);
+  color: #666;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.results-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.ai-badge:hover,
+.feature-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.06);
 }
 
-.source-line, .time-line {
-  font-size: 14px;
-  color: var(--vt-c-text-light-2);
-  padding: 4px 0;
-  animation: fadeIn 0.3s ease forwards;
-  animation-delay: 0.2s;
-  opacity: 0;
+.ai-badge svg,
+.feature-badge svg {
+  width: 18px;
+  height: 18px;
+}
+
+.divider {
+  color: #ddd;
+  font-weight: 300;
+  margin: 0 4px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .header-content {
+    padding: 12px 16px;
+    gap: 16px;
+  }
+  
+  .nav-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  
+  .nav-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .center-section h1 {
+    font-size: 18px;
+  }
+  
+  .center-section .subtitle {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    flex-wrap: wrap;
+  }
+  
+  .center-section {
+    order: -1;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  
+  .left-section,
+  .right-section {
+    flex: 1;
+  }
+}
+
+.search-results::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, rgba(79, 110, 247, 0.05) 0%, transparent 70%);
+  z-index: -1;
+  pointer-events: none;
 }
 </style> 

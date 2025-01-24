@@ -75,6 +75,11 @@ const routes = [
     path: '/view-paper',
     name: 'ViewPaper',
     component: ViewPaper
+  },
+  {
+    path: '/search',
+    name: 'Search',
+    component: () => import('../views/Search.vue')
   }
 ]
 

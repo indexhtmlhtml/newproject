@@ -352,7 +352,7 @@ const COZE_API = {
   BOT_ID: '7456723652143398963',
   USER_ID: '3329463097',
   HEADERS: {
-    'Authorization': 'Bearer pat_NEwlEOoIK70kvHq0lKQ2fwgH1bh2tgldcYvUu44hwuev0htrCKBIWb8NEdTD3RDX',
+    'Authorization': 'Bearer pat_6AdXPVO3CB8yStr46x944r4CCln9WnQOIfjzQEm91h5yNjzHqWglffVFQSeknSNw',
     'Content-Type': 'application/json',
     'Accept': '*/*',
     'Host': 'api.coze.cn',

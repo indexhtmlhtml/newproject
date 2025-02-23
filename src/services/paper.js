@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-const API_URL = 'https://api.deepseek.com'
-const API_KEY = 'sk-1bb183d7bd70432e9f0deafbbfe89bb9'
+const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+const API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY
 
 // 添加保存和获取试卷历史的函数
 const HISTORY_KEY = 'paper_history'
@@ -135,7 +135,7 @@ export const generatePaper = async (params) => {
       matching: params.counts?.matching || defaultQuestionCounts.matching
     }
 
-    let prompt = `请生成一份详细的编程能力测试试卷，要求如下：
+    let prompt = `请生成一份详细的中文编程能力测试试卷，要求如下：
 
     领域要求：${Array.isArray(params.domains) ? params.domains.map(domain => {
       const domainNames = {
@@ -184,20 +184,18 @@ export const generatePaper = async (params) => {
       "matching": [] // 长度必须为 ${questionCounts.matching}
     }`
 
-    const response = await axios.post(`${API_URL}/v1/chat/completions`, {
-      model: 'deepseek-chat',
+    const response = await axios.post(API_URL, {
+      model: 'qwen-plus',
       messages: [
         {
-          role: 'system',
-          content: DEEPSEEK_PROMPT
+          role: "system",
+          content: "You are a professional programming exam expert. Always return valid JSON without any comments."
         },
         {
           role: 'user',
-          content: prompt
+          content: `${DEEPSEEK_PROMPT}\n\n${prompt}\n\n注意：请返回纯 JSON 格式，不要包含任何注释或其他内容。`
         }
       ],
-      temperature: 0.7,
-      max_tokens: 4000
     }, {
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
@@ -205,39 +203,61 @@ export const generatePaper = async (params) => {
       }
     })
 
-      const result = response.data.choices[0].message.content
+    console.log('API Request:', {
+      model: 'qwen-plus',
+      messages: [
+        { role: 'system' },
+        { role: 'user' }
+      ]
+    })
 
-      // 从响应中提取并解析 JSON
-    const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/) || result.match(/{[\s\S]*}/)
-    
-    if (!jsonMatch) {
-      throw new Error('Invalid response format')
-    }
-    
-    const paper = JSON.parse(jsonMatch[1] || jsonMatch[0])
-    
-    // 验证必要字段
-    if (!paper.title || !paper.difficulty || !paper.duration || !paper.totalScore) {
-      throw new Error('Missing required fields in paper')
-    }
+    const result = response.data.choices[0].message.content.trim()
+    console.log('Raw AI response:', result)
 
-    // 验证题目数量
-    const validateQuestionCount = (type) => {
-      const required = questionCounts[type]
-      const actual = paper[type]?.length || 0
-      if (required !== actual) {
-        throw new Error(`${type} question count mismatch: required ${required}, got ${actual}`)
+    try {
+      // 清理可能的注释
+      let cleanedResult = result
+        .replace(/\/\*[\s\S]*?\*\//g, '') // 移除多行注释
+        .replace(/\/\/.*/g, '')           // 移除单行注释
+        .replace(/^\s*[\r\n]/gm, '')      // 移除空行
+        .replace(/,\s*([\]}])/g, '$1')    // 移除尾随逗号
+        .trim()
+
+      // 尝试提取 JSON
+      const jsonMatch = cleanedResult.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        console.error('No valid JSON found in response')
+        throw new Error('Invalid response format')
       }
-    }
 
-    // 验证所有题型数量
-    ['choice', 'programming', 'completion', 'truefalse', 'shortanswer', 'matching'].forEach(validateQuestionCount)
+      const jsonStr = jsonMatch[0]
+      console.log('Cleaned JSON:', jsonStr)
 
-    // 保存到历史记录
-    savePaperToHistory(paper)
+      // 解析 JSON
+      const paper = JSON.parse(jsonStr)
+
+      // 验证必要字段
+      if (!paper.title || !paper.difficulty || !paper.duration || !paper.totalScore) {
+        throw new Error('Missing required fields in paper')
+      }
+
+      // 验证题目数量
+      Object.entries(questionCounts).forEach(([type, count]) => {
+        if (!Array.isArray(paper[type]) || paper[type].length !== count) {
+          throw new Error(`Invalid ${type} question count`)
+        }
+      })
+
+      // 保存到历史记录
+      savePaperToHistory(paper)
       
       return paper
     } catch (error) {
+      console.error('Error parsing AI response:', error)
+      console.error('Raw response:', result)
+      throw new Error('Failed to generate valid paper format')
+    }
+  } catch (error) {
     console.error('Error generating paper:', error)
     throw error
   }
@@ -276,60 +296,79 @@ export const gradePaperAnswers = async (paper, answers) => {
         
         if (!userAnswer) continue;
 
-        const response = await axios.post(`${API_URL}/v1/chat/completions`, {
-          model: 'deepseek-chat',
+        const response = await axios.post(API_URL, {
+          model: 'qwen-plus',
           messages: [
             {
-              role: 'system',
-              content: `你是一个编程评分助手。请根据以下标准评分：
+              role: "system",
+              content: "You are a professional programming grading assistant. Always respond in JSON format."
+            },
+            {
+              role: 'user',
+              content: `请以JSON格式评分，格式如下：
+              {
+                "score": 分数(0-10),
+                "feedback": "评分反馈"
+              }
+              
+              评分标准：
               1. 代码功能完整性（50%）：代码是否实现了所需功能
               2. 代码效率（20%）：时间和空间复杂度是否合理
               3. 代码规范性（20%）：命名、格式是否规范
               4. 代码可读性（10%）：代码是否易于理解
               
-              满分为10分。请直接返回一个 JSON 对象（不要包含任何其他格式或标记），格式如下：
-              {
-                "score": 得分（0-10分）,
-                "feedback": "评分反馈"
-              }`
-            },
-            {
-              role: 'user',
-              content: `
               题目描述：${question.content}
               参考答案：${question.answer}
               学生答案：${userAnswer}
-              题目分值：10分
-              
-              请评分并给出反馈。`
+              题目分值：10分`
             }
           ],
-          temperature: 0.1
         }, {
           headers: {
             'Authorization': `Bearer ${API_KEY}`,
             'Content-Type': 'application/json'
           }
-        });
+        })
 
-        // 尝试清理返回的内容并解析 JSON
         let content = response.data.choices[0].message.content.trim();
-        // 如果内容被包裹在代码块中，提取出 JSON 部分
-        if (content.startsWith('```')) {
-          content = content.replace(/^```(?:json)?\n|\n```$/g, '');
-        }
-        const result = JSON.parse(content);
+        console.log('Raw AI response:', content);
 
-        const score = Math.min(Math.max(0, result.score), 10);
-        scores.programming += score;
-        totalScore += score;
-        
-        // 保存AI的评分反馈
-        answers.programming[i] = {
-          code: userAnswer,
-          score: score,
-          feedback: result.feedback
-        };
+        try {
+          // 尝试从响应中提取 JSON
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) {
+            console.error('No JSON found in response');
+            throw new Error('Invalid response format');
+          }
+          
+          const jsonStr = jsonMatch[0].trim();
+          console.log('Extracted JSON:', jsonStr);
+          
+          const result = JSON.parse(jsonStr);
+          
+          // 验证结果格式
+          if (typeof result.score !== 'number' || typeof result.feedback !== 'string') {
+            throw new Error('Invalid result format');
+          }
+
+          const score = Math.min(Math.max(0, result.score), 10);
+          scores.programming += score;
+          totalScore += score;
+          
+          answers.programming[i] = {
+            code: userAnswer,
+            score: score,
+            feedback: result.feedback
+          };
+        } catch (error) {
+          console.error('Error processing AI response:', error);
+          // 使用默认评分
+          answers.programming[i] = {
+            code: userAnswer,
+            score: 0,
+            feedback: "评分系统出错，请重试"
+          };
+        }
       }
     }
 
@@ -341,11 +380,15 @@ export const gradePaperAnswers = async (paper, answers) => {
         
         if (!userAnswer) continue;
 
-        const response = await axios.post(`${API_URL}/v1/chat/completions`, {
-          model: 'deepseek-chat',
+        const response = await axios.post(API_URL, {
+          model: 'qwen-plus',
           messages: [
             {
-              role: 'system',
+              role: "system",
+              content: "You are a professional programming grading assistant."
+            },
+            {
+              role: 'user',
               content: `你是一个编程简答题评分助手。请根据答案要点评分，并给出得分理由。
               满分为10分。请直接返回一个 JSON 对象（不要包含任何其他格式或标记），格式如下：
               {
@@ -364,15 +407,13 @@ export const gradePaperAnswers = async (paper, answers) => {
               请评分并给出反馈。`
             }
           ],
-          temperature: 0.1
         }, {
           headers: {
             'Authorization': `Bearer ${API_KEY}`,
             'Content-Type': 'application/json'
           }
-        });
+        })
 
-        // 尝试清理返回的内容并解析 JSON
         let content = response.data.choices[0].message.content.trim();
         // 如果内容被包裹在代码块中，提取出 JSON 部分
         if (content.startsWith('```')) {
@@ -401,5 +442,19 @@ export const gradePaperAnswers = async (paper, answers) => {
   } catch (error) {
     console.error('Error grading paper:', error);
     throw error;
+  }
+}
+
+export const submitAnswerToAI = async (problemId, userAnswer, language) => {
+  try {
+    const response = await axios.post(`http://localhost:3005/api/proxy/coze/submit`, {
+      problemId,
+      code: userAnswer,
+      language
+    })
+    return response.data // 返回 AI 的批改结果
+  } catch (error) {
+    console.error('Error submitting answer:', error)
+    throw error
   }
 } 

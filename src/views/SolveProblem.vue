@@ -87,9 +87,9 @@
           <div class="panel-header">
             <div class="editor-controls">
             <select v-model="selectedLanguage" class="language-select">
-              <option value="cpp">C++</option>
-                <option value="java">Java</option>
-                <option value="python">Python</option>
+              <option value="c">C</option>
+              <option value="python">Python</option>
+              <option value="java">Java</option>
             </select>
             <div class="editor-actions">
                 <button 
@@ -106,11 +106,16 @@
                   </svg>
                   {{ isGenerating ? '生成中...' : '生成模板' }}
               </button>
-                <button class="action-btn solution-btn" @click="openSolution">
+                <button class="action-btn solution-btn" @click="openSolution" :disabled="loadingSolution">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
                   </svg>
-                  查看题解
+                  <span>{{ loadingSolution ? '加载中...' : '查看题解' }}</span>
+                  <div v-if="loadingSolution" class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
               </button>
             </div>
           </div>
@@ -144,11 +149,11 @@
 
         <!-- 题解模态框 -->
         <div v-if="showSolution" class="solution-modal">
-          <div class="modal-overlay" @click="closeSolution"></div>
+          <div class="modal-overlay" @click="showSolution = false"></div>
           <div class="modal-container">
             <div class="modal-header">
               <h2>题目解析</h2>
-              <button class="close-btn" @click="closeSolution">
+              <button class="close-btn" @click="showSolution = false">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                 </svg>
@@ -156,39 +161,54 @@
                 </div>
             
             <div class="modal-content">
+              <!-- 加载状态 -->
               <div v-if="loadingSolution" class="loading-state">
-                <div class="spinner"></div>
+                <div class="loading-spinner"></div>
                 <p>正在生成题解...</p>
                 </div>
+
+              <!-- 错误状态 -->
               <div v-else-if="solutionError" class="error-state">
                 <p>{{ solutionError }}</p>
-                <button @click="loadSolution">重试</button>
+                <button @click="openSolution">重试</button>
                 </div>
+
+              <!-- 题解内容 -->
               <div v-else-if="solution" class="solution-content">
                 <div class="solution-section">
-                  <h3>解题思路</h3>
-                  <div class="solution-text" v-html="solution.approach"></div>
+                  <h3>题目分析</h3>
+                  <p>{{ solution.analysis }}</p>
               </div>
                 <div class="solution-section">
-                  <h3>代码实现</h3>
-                  <div class="solution-code">
-                    <div class="code-header">
-                      <span>{{ selectedLanguage }}</span>
-                      <button class="copy-btn" @click="copyCode(solution.code)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                        </svg>
-                      </button>
+                  <h3>解题方法</h3>
+                  <div v-for="(approach, index) in solution.approaches" 
+                       :key="index" 
+                       class="approach">
+                    <h4>{{ approach.name }}</h4>
+                    <p>{{ approach.description }}</p>
+                    <div class="complexity">
+                      <span>时间复杂度: {{ approach.timeComplexity }}</span>
+                      <span>空间复杂度: {{ approach.spaceComplexity }}</span>
             </div>
-                    <pre><code>{{ solution.code }}</code></pre>
+                    <div class="code-implementations">
+                      <div class="code-header">
+                        <select v-model="selectedLanguage" class="language-select">
+                          <option value="c">C</option>
+                          <option value="python">Python</option>
+                          <option value="java">Java</option>
+                        </select>
           </div>
+                      <pre><code>{{ approach.code[selectedLanguage] }}</code></pre>
+                    </div>
+                  </div>
                 </div>
                 <div class="solution-section">
-                  <h3>复杂度分析</h3>
-                  <div class="complexity">
-                    <p><strong>时间复杂度：</strong>{{ solution.timeComplexity }}</p>
-                    <p><strong>空间复杂度：</strong>{{ solution.spaceComplexity }}</p>
-                  </div>
+                  <h3>解题技巧</h3>
+                  <ul>
+                    <li v-for="(tip, index) in solution.tips" :key="index">
+                      {{ tip }}
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -223,6 +243,8 @@ import { getProblem, runCode as runCodeAPI, submitCodeToAI } from '../services/p
 import { getProblemStats, getSubmissions } from '@/services/jieti'
 import { useProblemsStore } from '../stores/problems'
 import axios from 'axios'
+import MonacoEditor from '../components/MonacoEditor.vue'
+import { submitAnswerToAI } from '../services/paper'
 
 const route = useRoute()
 const router = useRouter()
@@ -230,7 +252,7 @@ const problemsStore = useProblemsStore()
 const problem = ref(null)
 const showSolution = ref(false)
 const code = ref('')
-const selectedLanguage = ref('cpp')
+const selectedLanguage = ref('c')
 const isRunning = ref(false)
 const isSubmitting = ref(false)
 const problemStats = ref({
@@ -252,6 +274,9 @@ const submissionModal = ref({
   content: ''
 })
 const isGenerating = ref(false)
+const isSolutionLoading = ref(false)
+const userAnswer = ref('')
+const gradingResult = ref(null)
 
 const generateTemplate = async (problem, language) => {
   try {
@@ -370,9 +395,9 @@ const submitCode = async () => {
       status: 'submitting',
       message: '正在评估代码...'
     }
-
-    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
-      model: "deepseek-chat",
+const API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+    const response = await axios.post(API_URL,{
+      model: 'qwen-plus',
       messages: [
         {
           role: "system",
@@ -398,7 +423,7 @@ const submitCode = async () => {
           role: "user",
           content: `请评估以下代码：
           题目：${problem.value.title}
-          描述：${problem.value.description}
+          描述：${problem.value.content || problem.value.description || ''}
           编程语言：${selectedLanguage.value}
           代码：
           ${code.value}`
@@ -490,38 +515,60 @@ const toggleDescription = () => {
   showDescription.value = !showDescription.value
 }
 
-const loadSolution = async () => {
-  if (!problem.value) return
-  
-  loadingSolution.value = true
-  solutionError.value = null
-  
+const openSolution = async () => {
   try {
-    const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
-      model: "deepseek-chat",
+    showSolution.value = true
+    loadingSolution.value = true
+    
+    if (!problem.value) {
+      throw new Error('题目信息未加载完成，请稍后再试')
+    }
+
+    console.log('开始生成题解，题目信息:', problem.value)
+
+    const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      model: 'qwen-plus',
       messages: [
         {
           role: "system",
-          content: `你是一个专业的算法专家。请针对给定的编程题目，提供详细的解题思路和代码实现。
-请按照以下JSON格式返回：
-{
-  "approach": "解题思路和算法分析",
-  "code": "完整的代码实现",
-  "timeComplexity": "时间复杂度分析",
-  "spaceComplexity": "空间复杂度分析"
-}`
+          content: "你是一个专业的编程题解析助手。请用中文详细解释解题思路，并提供多种实现方案。请确保返回的是合法的JSON格式。"
         },
         {
           role: "user",
-          content: `请为以下题目提供详细题解：
+          content: `请分析以下编程题目并提供详细解答：
+
 题目：${problem.value.title}
-描述：${problem.value.description}
-编程语言：${selectedLanguage.value}`
-        }
-      ],
-      response_format: {
-        type: "json_object"
+
+描述：${problem.value.content || problem.value.description || ''}
+
+${problem.value.examples ? `
+示例：
+${problem.value.examples.map((example, index) => `
+示例 ${index + 1}：
+输入：${example.input}
+输出：${example.output}
+${example.explanation ? `解释：${example.explanation}` : ''}`).join('\n')}` : ''}
+
+请返回以下格式的JSON（确保是合法的JSON格式）：
+{
+  "analysis": "详细的题目分析和解题思路",
+  "approaches": [
+    {
+      "name": "解法名称",
+      "description": "解法描述",
+      "timeComplexity": "时间复杂度",
+      "spaceComplexity": "空间复杂度",
+      "code": {
+        "c": "C语言代码",
+        "python": "Python代码",
+        "java": "Java代码"
       }
+    }
+  ],
+  "tips": ["解题技巧1", "解题技巧2"]
+}`
+        }
+      ]
     }, {
       headers: {
         'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
@@ -529,11 +576,36 @@ const loadSolution = async () => {
       }
     })
 
+    console.log('API 响应:', response.data)
+
     const result = response.data.choices[0].message.content
-    solution.value = JSON.parse(result)
+    console.log('AI 返回的原始内容:', result)
+
+    try {
+      // 提取 ```json 和 ``` 之间的内容
+      let cleanedResult = result
+        // 提取 ```json 和 ``` 之间的内容
+        .match(/```json\n([\s\S]*?)\n```/)?.[1] || result
+        .trim();
+
+      console.log('清理后的内容:', cleanedResult)
+
+      solution.value = JSON.parse(cleanedResult)
+      console.log('清理后解析成功:', solution.value)
+
+    } catch (e) {
+      console.error('JSON 解析失败:', e)
+      throw new Error('题解格式错误')
+    }
+
+    // 验证解析后的数据结构
+    if (!solution.value.analysis || !Array.isArray(solution.value.approaches)) {
+      throw new Error('题解格式不完整')
+    }
+
   } catch (error) {
-    console.error('Failed to load solution:', error)
-    solutionError.value = '获取题解失败，请稍后重试'
+    console.error('生成题解失败:', error)
+    solutionError.value = error.message
   } finally {
     loadingSolution.value = false
   }
@@ -606,6 +678,20 @@ const generateRandomSubmissions = () => {
   })).sort((a, b) => b.timestamp - a.timestamp)
 }
 
+const handleBack = () => {
+  router.push('/problems')
+}
+
+const submitAnswer = async () => {
+  try {
+    const result = await submitAnswerToAI(problem.value.id, userAnswer.value, problem.value.language)
+    gradingResult.value = result
+  } catch (error) {
+    console.error('提交答案失败:', error)
+    alert('提交答案失败，请重试。')
+  }
+}
+
 onMounted(async () => {
   try {
     loading.value = true
@@ -663,17 +749,6 @@ onMounted(async () => {
     loading.value = false
   }
 })
-
-const openSolution = async () => {
-  showSolution.value = true
-  if (!solution.value && !loadingSolution.value) {
-    await loadSolution()
-  }
-}
-
-const closeSolution = () => {
-  showSolution.value = false
-}
 </script>
 
 <style scoped>
@@ -1883,5 +1958,57 @@ const closeSolution = () => {
 .solution-btn:hover {
   color: var(--vt-c-primary);
   background: rgba(79, 110, 247, 0.1);
+}
+
+.loading-dots {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.loading-dots span {
+  width: 4px;
+  height: 4px;
+  background-color: currentColor;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--vt-c-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: var(--vt-c-text-light-2);
+}
+
+.loading-state p {
+  margin-top: 16px;
+  font-size: 14px;
 }
 </style> 

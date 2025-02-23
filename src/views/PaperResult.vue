@@ -1564,7 +1564,7 @@ const getCorrectAnswerText = (type, index) => {
   font-size: 14px !important;
   line-height: 1.5 !important;
   overflow-x: auto !important;
-  white-space: pre !important;
+  
   margin: 12px 0 !important;
 }
 

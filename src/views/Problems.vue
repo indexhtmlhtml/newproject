@@ -46,41 +46,50 @@
 
     <main class="main-content">
       <div class="problems-list">
-        <div v-for="problem in filteredProblems" 
-             :key="problem.id" 
-             class="problem-card"
-             :class="problem.difficulty">
-          <div class="problem-status">
-            <span class="status-icon" :class="problem.status"></span>
-          </div>
-          
-          <div class="problem-info">
-            <h3 class="problem-title">{{ problem.title }}</h3>
-            <p class="problem-desc">{{ problem.description }}</p>
+        <transition-group name="fade" tag="div">
+          <div v-for="(problem, index) in paginatedProblems" 
+               :key="problem.id" 
+               class="problem-card"
+               :class="problem.difficulty">
+            <div class="problem-status">
+              <span class="status-icon" :class="problem.status"></span>
+            </div>
             
-            <div class="problem-meta">
-              <span class="difficulty-tag" :class="problem.difficulty">
-                {{ t(`problems.${problem.difficulty}`) }}
-              </span>
-              <span class="acceptance-rate">
-                通过率: {{ problem.acceptanceRate }}%
-              </span>
+            <div class="problem-info">
+              <h3 class="problem-title">{{ (currentPage - 1) * itemsPerPage + index + 1 }}. {{ problem.title }}</h3>
+              <p class="problem-description">{{ problem.content }}</p>
+              
+              <div class="problem-meta">
+                <span class="difficulty-tag" :class="problem.difficulty">
+                  {{ t(`problems.${problem.difficulty}`) }}
+                </span>
+                <span class="acceptance-rate">
+                  通过率: {{ problem.acceptanceRate }}%
+                </span>
+              </div>
+            </div>
+
+            <div class="problem-actions">
+              <button 
+                class="solve-btn" 
+                @click="startProblem(problem)"
+                :title="t('problems.startSolving')"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M8 5v14l11-7z"/>
+                </svg>
+                <span>{{ t('problems.startSolving') }}</span>
+              </button>
             </div>
           </div>
+        </transition-group>
+      </div>
 
-          <div class="problem-actions">
-            <button 
-              class="solve-btn" 
-              @click="startProblem(problem)"
-              :title="t('problems.startSolving')"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M8 5v14l11-7z"/>
-              </svg>
-              <span>{{ t('problems.startSolving') }}</span>
-            </button>
-          </div>
-        </div>
+      <!-- 分页控件 -->
+      <div class="pagination">
+        <button @click="prevPage" :disabled="currentPage === 1">上一页</button>
+        <span>第 {{ currentPage }} 页 / {{ totalPages }}</span>
+        <button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
       </div>
     </main>
 
@@ -182,7 +191,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useProblemsStore } from '../stores/problems'
@@ -193,18 +202,24 @@ const route = useRoute()
 const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
-const category = route.params.category
-const problems = ref(problemsStore.getProblemsByCategory(category))
+const category = computed(() => route.params.category)
+const problems = computed(() => {
+  const result = problemsStore.getProblemsByCategory(category.value)
+  console.log('Computing problems:', result)
+  return result
+})
 const searchQuery = ref('')
 const difficulty = ref('')
+const currentPage = ref(1)
+const itemsPerPage = 10 // 每页显示的题目数量
 
-const filteredProblems = computed(() => {
-  return problems.value.filter(problem => {
-    const matchesSearch = problem.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                         problem.description.toLowerCase().includes(searchQuery.value.toLowerCase())
-    const matchesDifficulty = !difficulty.value || problem.difficulty === difficulty.value
-    return matchesSearch && matchesDifficulty
-  })
+const totalPages = computed(() => {
+  return Math.ceil(problems.value.length / itemsPerPage)
+})
+
+const paginatedProblems = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return problems.value.slice(start, start + itemsPerPage)
 })
 
 const goBack = () => {
@@ -231,10 +246,10 @@ const startProblem = async (problem) => {
       id: problemId.toString(),
       title: problem.title || '',
       difficulty: problem.difficulty || 'medium',
-      description: problem.description || '',
+      description: problem.content || '',
       examples: problem.examples || [],
       constraints: problem.constraints || '',
-      acceptanceRate: problem.successRate || 0,
+      acceptanceRate: problem.successRate || problem.acceptanceRate || 0,
       submissions: problem.submissions || 0,
       template: problem.template || '',
       testCases: problem.testCases || []
@@ -297,13 +312,17 @@ const handleGenerateProblems = async () => {
     }, 2000)
     
     const result = await generateProblems({
-      category,
+      category: category.value,
       count: generateConfig.value.count,
       difficulty: generateConfig.value.difficulty
     })
     
-    problemsStore.addProblems(category, result.problems)
-    problems.value = problemsStore.getProblemsByCategory(category)
+    console.log('Generated problems:', result.problems)
+    
+    problemsStore.addProblems(category.value, result.problems)
+    console.log('Updated problems list:', problemsStore.getProblemsByCategory(category.value))
+    
+    problems.value = problemsStore.getProblemsByCategory(category.value)
     
     // 显示成功通知
     notification.value = {
@@ -326,8 +345,8 @@ const handleGenerateProblems = async () => {
 
 const deleteProblem = (problemId) => {
   if (confirm(t('problems.confirmDelete'))) {
-    problemsStore.deleteProblem(category, problemId)
-    problems.value = problemsStore.getProblemsByCategory(category)
+    problemsStore.deleteProblem(category.value, problemId)
+    problems.value = problemsStore.getProblemsByCategory(category.value)
   }
 }
 
@@ -384,40 +403,41 @@ const loadProblems = async () => {
 }
 
 // 在组件挂载时确保数据正确加载
-onMounted(async () => {
-  try {
-    const category = route.params.category
-    // 从 store 获取题目列表
-    const problemsList = problemsStore.getProblemsByCategory(category)
-    
-    if (!problemsList || !Array.isArray(problemsList)) {
-      console.error('Invalid problems list:', problemsList)
-      return
+onMounted(() => {
+  console.log('Current category:', category.value)
+  console.log('Initial store state:', problemsStore.problemsByCategory)
+  
+  if (category.value === 'algorithms') {
+    // 只有当没有预设题目时才添加
+    if (!problemsStore.problemsByCategory.algorithms?.length) {
+      problemsStore.addProblems('algorithms', [])
     }
-    
-    // 确保每个题目都有正确的 ID
-    problems.value = problemsList.map(problem => {
-      const id = problem.id || problem.problemId || Date.now().toString()
-      return {
-        ...problem,
-        id: id.toString(),
-        difficulty: problem.difficulty || 'medium',
-        successRate: problem.successRate || 0,
-        submissions: problem.submissions || 0
-      }
-    })
-
-    // 打印检查处理后的题目数据
-    console.log('Processed problems:', problems.value)
-  } catch (error) {
-    console.error('Failed to load problems:', error)
+    console.log('After adding problems:', problemsStore.problemsByCategory)
+    console.log('Current problems:', problems.value)
   }
 })
+
+// 监听 problems 变化
+watch(problems, (newProblems) => {
+  console.log('Problems updated:', newProblems)
+}, { deep: true })
 
 // 在组件卸载时清理定时器
 onUnmounted(() => {
   clearInterval(statusInterval)
 })
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+  }
+}
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+  }
+}
 </script>
 
 <style scoped>
@@ -666,10 +686,16 @@ onUnmounted(() => {
   margin: 0 0 8px;
 }
 
-.problem-desc {
-  color: #666;
+.problem-description {
+  color: var(--vt-c-text-light-2);
   font-size: 14px;
-  margin: 0 0 12px;
+  line-height: 1.5;
+  margin: 8px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .problem-meta {
@@ -1080,5 +1106,38 @@ onUnmounted(() => {
   content: '•';
   margin-right: 8px;
   color: var(--vt-c-divider-light-1);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.pagination button {
+  margin: 0 10px;
+  padding: 8px 12px;
+  border: none;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: var(--primary-color-dark);
+  transform: scale(1.05);
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 16px;
+  color: var(--text-primary);
 }
 </style> 

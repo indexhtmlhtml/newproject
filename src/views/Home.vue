@@ -135,36 +135,9 @@
         </div>
       </div>
 
-      <section class="analysis-section">
-        <ScoreAnalysis />
-      </section>
+  
 
-      <!-- 添加面试官选择区域 -->
-      <div class="interview-section">
-        <h2 class="section-title">AI 模拟面试</h2>
-        <div class="interviewer-grid">
-          <div v-for="interviewer in interviewers" 
-               :key="interviewer.id" 
-               class="interviewer-card"
-               @click="startInterview(interviewer)">
-            <div class="interviewer-avatar">
-              <img :src="interviewer.avatar" :alt="interviewer.name">
-              <div class="online-status" :class="{ active: interviewer.online }"></div>
-            </div>
-            <div class="interviewer-info">
-              <h3 class="interviewer-name">{{ interviewer.name }}</h3>
-              <p class="interviewer-title">{{ interviewer.title }}</p>
-              <p class="interviewer-company">{{ interviewer.company }}</p>
-              <div class="interviewer-tags">
-                <span v-for="tag in interviewer.tags" 
-                      :key="tag" 
-                      class="tag">{{ tag }}</span>
-              </div>
-            </div>
-            <button class="start-btn">开始面试</button>
-          </div>
-        </div>
-      </div>
+     
 
       <!-- 原有的试卷生成部分 -->
       <div class="paper-section">

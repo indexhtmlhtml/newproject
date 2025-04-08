@@ -6,6 +6,7 @@ import Problems from '../views/Problems.vue'
 import SolveProblem from '../views/SolveProblem.vue'
 import Interview from '../views/Interview.vue'
 import ViewPaper from '@/views/ViewPaper.vue'
+import Analysis from '../views/Analysis.vue'
 
 const routes = [
   {
@@ -80,6 +81,14 @@ const routes = [
     path: '/search',
     name: 'Search',
     component: () => import('../views/Search.vue')
+  },
+  {
+    path: '/analysis',
+    name: 'Analysis',
+    component: Analysis,
+    meta: {
+      requiresAuth: true
+    }
   }
 ]
 

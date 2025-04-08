@@ -349,10 +349,10 @@ const switchToNotes = () => {
 // Coze API 配置
 const COZE_API = {
   BASE_URL: 'https://api.coze.cn/open_api/v2/chat',
-  BOT_ID: '7456723652143398963',
+  // 移除硬编码的BOT_ID
   USER_ID: '3329463097',
   HEADERS: {
-    'Authorization': 'Bearer pat_6AdXPVO3CB8yStr46x944r4CCln9WnQOIfjzQEm91h5yNjzHqWglffVFQSeknSNw',
+    'Authorization': 'Bearer pat_rvhbO07padhb4ZKkSV6MgQ1aMBTb0KMpnAsrJpRLv06qfMvR5NDMfkaaahthILIA',
     'Content-Type': 'application/json',
     'Accept': '*/*',
     'Host': 'api.coze.cn',
@@ -679,28 +679,34 @@ const toggleRecording = () => {
 
 // 修改初始化面试逻辑
 const initializeInterview = async () => {
+  if (!interviewer.value) return
+  
+  startTime.value = Date.now()
+  isLoading.value = true
+  
+  messages.value = [{
+    role: 'assistant',
+    content: '',
+    timestamp: Date.now()
+  }]
+  
+  let currentResponse = ''
+  
   try {
-    isLoading.value = true
-    startTime.value = Date.now()
+    // 使用当前面试官的ID
+    const botId = interviewer.value.id
     
-    let currentResponse = ''
-    messages.value = [{
-      role: 'assistant',
-      content: '',
-      timestamp: Date.now()
-    }]
-
     const response = await fetch(COZE_API.BASE_URL, {
       method: 'POST',
       headers: COZE_API.HEADERS,
       body: JSON.stringify({
         conversation_id: conversationId.value,
-        bot_id: COZE_API.BOT_ID,
+        bot_id: botId, // 使用面试官ID
         user: COZE_API.USER_ID,
         query: "你好面试官",
         stream: true,
         custom_variables: {
-          bot_name: "java面试官"
+          bot_name: interviewer.value.title // 使用面试官的职位作为名称
         }
       })
     })
@@ -726,7 +732,7 @@ const initializeInterview = async () => {
   }
 }
 
-// 修改发送消息逻辑
+// 重新实现发送消息功能
 const sendMessage = async (text) => {
   // 如果没有传入text参数，则使用currentMessage的值
   const messageText = text || currentMessage.value
@@ -752,18 +758,21 @@ const sendMessage = async (text) => {
       content: '',
       timestamp: Date.now()
     })
-
+    
+    // 使用当前面试官的ID
+    const botId = interviewer.value.id
+    
     const response = await fetch(COZE_API.BASE_URL, {
       method: 'POST',
       headers: COZE_API.HEADERS,
       body: JSON.stringify({
         conversation_id: conversationId.value,
-        bot_id: COZE_API.BOT_ID,
+        bot_id: botId, // 使用选定面试官的ID
         user: COZE_API.USER_ID,
         query: messageText,
         stream: true,
         custom_variables: {
-          bot_name: "java面试官"
+          bot_name: interviewer.value.title // 使用面试官的职位
         }
       })
     })

@@ -15,7 +15,7 @@ export const INTERVIEWERS = [
     direction: '后端开发'
   },
   {
-    id: '7456723652143398964',
+    id: '7487435880626520104',
     name: 'Sarah Zhang',
     title: '前端架构师',
     company: 'Alibaba',
@@ -26,11 +26,11 @@ export const INTERVIEWERS = [
     experience: 6,
     rating: 4.8,
     online: true,
-    styles: ['重视代码质量', '注重工程实践', '关注用户体验'],
+    styles: ['擅长实战分析', '全面考察技能', '关注工程实践'],
     direction: '前端开发'
   },
   {
-    id: '7456723652143398965',
+    id: '7487438797861765172',
     name: 'Michael Wang',
     title: '算法专家',
     company: 'Google',
@@ -45,7 +45,7 @@ export const INTERVIEWERS = [
     direction: '算法'
   },
   {
-    id: '7456723652143398966',
+    id: '7487443586141716480',
     name: 'Emma Davis',
     title: '系统架构师',
     company: 'Microsoft',
@@ -60,7 +60,7 @@ export const INTERVIEWERS = [
     direction: '系统架构'
   },
   {
-    id: '7456723652143398967',
+    id: '7487473340370747402',
     name: 'David Liu',
     title: '后端开发专家',
     company: 'Tencent',

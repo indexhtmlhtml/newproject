@@ -8,17 +8,28 @@
           If you don't have an account,<br>
           you can <a href="#" class="register-link" @click.prevent="goToRegister">Register here</a>.
         </p>
+        
+        <!-- 添加快速登录按钮 -->
+        <div class="demo-account">
+          <button @click="useDemo" class="demo-btn">
+            使用演示账号登录
+          </button>
+          <div class="demo-info">
+            用户名: admin<br>
+            密码: admin123
+          </div>
+        </div>
       </div>
 
       <div class="right-section">
         <div class="form">
           <div class="input-group">
             <input 
-              type="email" 
-              v-model="email" 
-              placeholder="mail@mail.com" 
+              type="text" 
+              v-model="username" 
+              placeholder="用户名或邮箱" 
               class="input"
-              :class="{ 'input-filled': email }"
+              :class="{ 'input-filled': username }"
             >
             <span class="input-highlight"></span>
           </div>
@@ -28,7 +39,7 @@
               <input 
                 :type="showPassword ? 'text' : 'password'" 
                 v-model="password" 
-                placeholder="Password" 
+                placeholder="密码" 
                 class="input"
                 :class="{ 'input-filled': password }"
               >
@@ -44,15 +55,15 @@
             <span class="input-highlight"></span>
           </div>
           <div class="recovery">
-            <a href="#" class="recovery-link">Recovery password</a>
+            <a href="#" class="recovery-link">忘记密码?</a>
           </div>
           <button class="sign-in-btn" @click="handleLogin" :class="{ 'button-loading': isLoading }">
-            <span v-if="!isLoading">Sign In</span>
+            <span v-if="!isLoading">登录</span>
             <span v-else class="loading-spinner"></span>
           </button>
 
           <div class="social-login">
-            <p class="continue-with">or continue with</p>
+            <p class="continue-with">或使用以下方式登录</p>
             <div class="social-buttons">
               <button class="social-btn qq">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -85,17 +96,43 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const email = ref('')
+const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const isLoading = ref(false)
 
+// 预设的演示账号
+const DEMO_ACCOUNT = {
+  username: 'admin',
+  password: 'admin123'
+}
+
+const useDemo = () => {
+  username.value = DEMO_ACCOUNT.username
+  password.value = DEMO_ACCOUNT.password
+}
+
 const handleLogin = async () => {
   isLoading.value = true
-  // 模拟登录延迟
-  await new Promise(resolve => setTimeout(resolve, 1500))
-  isLoading.value = false
-  router.push('/home')
+  try {
+    // 测试版本仅支持demo账号登录
+    if (username.value === DEMO_ACCOUNT.username && 
+        password.value === DEMO_ACCOUNT.password) {
+      // 存储登录状态
+      localStorage.setItem('isLoggedIn', 'true')
+      localStorage.setItem('username', username.value)
+      
+      // 登录成功后跳转到首页
+      router.push('/home')
+    } else {
+      alert('用户名或密码错误，请使用演示账号登录')
+    }
+  } catch (error) {
+    console.error('Login error:', error)
+    alert('登录失败，请重试')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const goToRegister = () => {
@@ -415,5 +452,37 @@ const goToRegister = () => {
 
 .social-btn.weibo:hover {
   background: #fff0f0;
+}
+
+/* 添加演示账号按钮样式 */
+.demo-account {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(79, 110, 247, 0.05);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.demo-btn {
+  background: #4F6EF7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.demo-btn:hover {
+  background: #3D5CE5;
+  transform: translateY(-2px);
+}
+
+.demo-info {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
 }
 </style> 

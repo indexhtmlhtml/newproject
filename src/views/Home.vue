@@ -135,14 +135,17 @@
         </div>
       </div>
 
-  
-
-     
-
       <!-- 原有的试卷生成部分 -->
       <div class="paper-section">
         <!-- ... 保持原有内容不变 ... -->
       </div>
+
+      <!-- 添加求职板块 -->
+      <section class="job-section">
+        <JobSearch />
+      </section>
+
+      <ScoreAnalysis v-if="activeTab === 'analysis'" />
     </main>
   </div>
 </template>
@@ -155,6 +158,7 @@ import AIChatBox from '../components/AIChatBox.vue'
 import { useLanguageStore } from '../stores/language'
 import { useI18n } from 'vue-i18n'
 import ScoreAnalysis from '../components/ScoreAnalysis.vue'
+import JobSearch from '../components/JobSearch.vue'
 
 const router = useRouter()
 const languageStore = useLanguageStore()

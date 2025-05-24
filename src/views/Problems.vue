@@ -213,14 +213,36 @@ const difficulty = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10 // 每页显示的题目数量
 
+// 先根据搜索关键词和难度过滤问题
+const filteredProblems = computed(() => {
+  return problems.value.filter(problem => {
+    // 难度筛选
+    const matchDifficulty = !difficulty.value || 
+      (problem.difficulty && problem.difficulty.toLowerCase() === difficulty.value.toLowerCase());
+    
+    // 搜索筛选
+    const matchSearch = !searchQuery.value || 
+      (problem.title && problem.title.toLowerCase().includes(searchQuery.value.toLowerCase())) || 
+      (problem.content && problem.content.toLowerCase().includes(searchQuery.value.toLowerCase()));
+    
+    return matchDifficulty && matchSearch;
+  });
+});
+
+// 分页计算现在基于过滤后的问题
 const totalPages = computed(() => {
-  return Math.ceil(problems.value.length / itemsPerPage)
-})
+  return Math.ceil(filteredProblems.value.length / itemsPerPage);
+});
 
 const paginatedProblems = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return problems.value.slice(start, start + itemsPerPage)
-})
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredProblems.value.slice(start, start + itemsPerPage);
+});
+
+// 监听筛选条件变化，重置页码到第一页
+watch([searchQuery, difficulty], () => {
+  currentPage.value = 1;
+});
 
 const goBack = () => {
   router.push('/home')

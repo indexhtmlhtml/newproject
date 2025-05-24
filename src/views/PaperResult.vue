@@ -109,31 +109,7 @@
         </div>
       </div>
 
-      <!-- 题型完成情况 -->
-      <div class="completion-analysis">
-        <h3>题型完成情况</h3>
-        <div class="completion-grid">
-          <div v-for="(score, type) in scores" 
-               :key="type"
-               v-if="maxScores[type] > 0" 
-               class="completion-card">
-            <div class="completion-header">
-              <span>{{ getQuestionTypeName(type) }}</span>
-              <span class="completion-score">{{ score }}/{{ maxScores[type] }}</span>
-            </div>
-            <div class="completion-stats">
-              <div class="stat-item">
-                <span>完成率</span>
-                <span>{{ getCompletionRate(type) }}%</span>
-              </div>
-              <div class="stat-item">
-                <span>正确率</span>
-                <span>{{ getAccuracyRate(type) }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  
 
       <!-- 答题回顾区域 -->
       <div class="review-section">
@@ -419,6 +395,13 @@ const typeAnalysis = computed(() => {
   }).filter(Boolean)
 })
 
+// 创建一个计算属性来过滤有效的分数类型
+const validScoreTypes = computed(() => {
+  return Object.entries(scores.value)
+    .filter(([type]) => maxScores.value[type] > 0)
+    .map(([type, score]) => ({ type, score }))
+})
+
 onMounted(() => {
   // 获取答案数据
   const savedData = localStorage.getItem('paperAnswers')
@@ -455,17 +438,15 @@ const totalMaxScore = computed(() => {
       case 'choice':
       case 'completion':
       case 'truefalse':
+      case 'matching':
         // 累加每道题的分数
         return total + questions.reduce((sum, q) => sum + (parseInt(q.score) || 0), 0)
       case 'programming':
-        // 编程题固定10分
-        return total + (questions.length > 0 ? 10 : 0)
+        // 编程题每题10分，而不是只加一个固定的10分
+        return total + (questions.length * 10)
       case 'shortanswer':
-        // 简答题取第一道题的分数
-        return total + (questions[0]?.score ? parseInt(questions[0].score) : 0)
-      case 'matching':
-        // 匹配题固定10分
-        return total + (questions.length > 0 ? 10 : 0)
+        // 简答题累加每道题的分数，而不是只取第一道题
+        return total + questions.reduce((sum, q) => sum + (parseInt(q.score) || 0), 0)
       default:
         return total
     }
@@ -537,9 +518,8 @@ const getCorrectCount = (type) => {
           return answer && answer.score >= 6
         }).length
       case 'matching':
-        return paper.value[type].filter((q, i) => {
-          return JSON.stringify(answers.value[type][i]) === JSON.stringify(q.answer)
-        }).length
+        // 匹配题使用新规则：全部匹配正确才算正确
+        return paper.value[type].filter((_, i) => isMatchingCorrect(i)).length
       case 'completion':
         // 填空题需要完全匹配
         return paper.value[type].filter((q, i) => {
@@ -613,7 +593,19 @@ const isMatchingCorrect = (index) => {
   if (!Array.isArray(answer) || answer.length !== question.leftItems.length) return false
   
   // 检查每个匹配是否正确
-  return question.answer.every(([leftIndex, rightIndex]) => answer[leftIndex] === rightIndex)
+  for (let leftIndex = 0; leftIndex < question.answer.length; leftIndex++) {
+    // 在匹配题中，answer格式为 [[leftIndex, rightIndex], ...]
+    const correctRightIndex = question.answer.find(pair => pair[0] === leftIndex)?.[1]
+    const userRightIndex = answer[leftIndex]
+    
+    // 如果任何一个匹配不正确，则整个题判定为错误
+    if (userRightIndex !== correctRightIndex) {
+      return false
+    }
+  }
+  
+  // 全部匹配正确
+  return true
 }
 
 // 添加返回按钮处理函数

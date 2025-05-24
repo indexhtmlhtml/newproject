@@ -11,7 +11,7 @@
           </button>
         </div>
         
-        <div class="interviewer-info">
+        <div class="interviewer-info" @click="toggleBusinessCard">
           <div class="message-avatar">
             <img :src="interviewer?.avatar" :alt="interviewer?.name">
           </div>
@@ -48,6 +48,63 @@
         </div>
       </div>
     </header>
+
+    <!-- 面试官名片组件 -->
+    <div v-if="showBusinessCard" class="business-card-overlay" @click.self="toggleBusinessCard">
+      <div class="business-card">
+        <div class="card-header">
+          <div class="card-avatar">
+            <img :src="interviewer?.avatar" :alt="interviewer?.name">
+          </div>
+          <div class="card-close" @click="toggleBusinessCard">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="card-content">
+          <h3 class="card-name">{{ interviewer?.name }}</h3>
+          <p class="card-title">{{ interviewer?.title }}</p>
+          <div class="card-company">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>
+            </svg>
+            <span>{{ interviewer?.company }}</span>
+          </div>
+          <div class="card-experience">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+            </svg>
+            <span>{{ interviewer?.experience }}年工作经验</span>
+          </div>
+          <div class="card-rating">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="#FFD700" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <span>{{ interviewer?.rating || 4.8 }} / 5.0 评分</span>
+          </div>
+          <div class="card-direction">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+            </svg>
+            <span>{{ interviewer?.direction }}</span>
+          </div>
+          <p class="card-description">{{ interviewer?.description }}</p>
+          
+          <div class="card-tags">
+            <span v-for="tag in interviewer?.tags" :key="tag" class="business-tag">{{ tag }}</span>
+          </div>
+          
+          <div class="card-styles">
+            <h4>面试风格</h4>
+            <ul>
+              <li v-for="style in interviewer?.styles" :key="style">{{ style }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="guidance-modal" v-if="showGuidance" @click.self="toggleGuidance">
       <div class="modal-content">
@@ -256,6 +313,7 @@ const interviewer = ref(null)
 const messagesContainer = ref(null)
 const startTime = ref(null)
 const showGuidance = ref(false)
+const showBusinessCard = ref(false)
 const fileInput = ref(null)
 const resumeFile = ref(null)
 const isUploading = ref(false)
@@ -352,7 +410,7 @@ const COZE_API = {
   // 移除硬编码的BOT_ID
   USER_ID: '3329463097',
   HEADERS: {
-    'Authorization': 'Bearer pat_rvhbO07padhb4ZKkSV6MgQ1aMBTb0KMpnAsrJpRLv06qfMvR5NDMfkaaahthILIA',
+    'Authorization': 'Bearer pat_sFcgyyORbERM2NytgvT5FhlAAWjHOXBBM2YbGogxJRajJqow9N725C4RkVJSOuDp',
     'Content-Type': 'application/json',
     'Accept': '*/*',
     'Host': 'api.coze.cn',
@@ -367,9 +425,9 @@ const conversationId = ref(`interview_${Date.now()}`)
 const XF_TTS_CONFIG = {
   HOST: 'cbm01.cn-huabei-1.xf-yun.com',
   PATH: '/v1/private/mcd9m97e6',
-  APP_ID: '3b4054d4',
-  API_KEY: 'c844821bb151c360b96840040731ca26',
-  API_SECRET: 'ZGUwZWM5NDNmOTdkMGIzYjFiMDQ5NjAw'
+  APP_ID: '4c3b9021',
+  API_KEY: 'cee7c2bc78065141508a60a9a0ea2832',
+  API_SECRET: 'YzJiODAyMzkwZTUyMzk2Zjc4M2Y5NTM2'
 }
 
 // 生成RFC1123格式的日期
@@ -1464,6 +1522,11 @@ const reconnectRecognition = async () => {
     reconnectTimer = setTimeout(reconnectRecognition, 2000)
   }
 }
+
+// Toggle business card
+const toggleBusinessCard = () => {
+  showBusinessCard.value = !showBusinessCard.value
+}
 </script>
 
 <style scoped>
@@ -1529,6 +1592,14 @@ const reconnectRecognition = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.interviewer-info:hover {
+  background: rgba(79, 110, 247, 0.08);
 }
 
 /* 修改导航栏头像样式 */
@@ -2625,5 +2696,172 @@ textarea::placeholder {
   background-color: #4F6EF7;
   border-radius: 50%;
   animation: pulse 1.5s infinite;
+}
+
+/* Business Card Styles */
+.business-card-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+  backdrop-filter: blur(3px);
+}
+
+.business-card {
+  width: 380px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: slideIn 0.3s ease;
+  position: relative;
+}
+
+.card-header {
+  position: relative;
+  height: 140px;
+  background: linear-gradient(135deg, #4F6EF7, #8491FF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  border: 4px solid white;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.card-close:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: rotate(90deg);
+}
+
+.card-content {
+  padding: 20px;
+}
+
+.card-name {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 10px 0 5px 0;
+  color: #333;
+}
+
+.card-title {
+  text-align: center;
+  font-size: 16px;
+  color: #666;
+  margin: 0 0 15px 0;
+}
+
+.card-company, .card-experience, .card-rating, .card-direction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #555;
+  font-size: 14px;
+}
+
+.card-description {
+  margin: 15px 0;
+  line-height: 1.5;
+  color: #444;
+  font-size: 14px;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.business-tag {
+  padding: 5px 12px;
+  background: rgba(79, 110, 247, 0.1);
+  color: #4F6EF7;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.card-styles {
+  margin-top: 20px;
+}
+
+.card-styles h4 {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.card-styles ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card-styles li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #555;
+}
+
+.card-styles li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #4F6EF7;
+  font-weight: bold;
+  font-size: 18px;
+  line-height: 14px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 </style> 

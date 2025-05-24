@@ -150,7 +150,7 @@
         <!-- 题解模态框 -->
         <div v-if="showSolution" class="solution-modal">
           <div class="modal-overlay" @click="showSolution = false"></div>
-          <div class="modal-container">
+          <div class="modal-container solution-container">
             <div class="modal-header">
               <h2>题目解析</h2>
               <button class="close-btn" @click="showSolution = false">
@@ -160,7 +160,7 @@
               </button>
                 </div>
             
-            <div class="modal-content">
+            <div class="modal-content solution-content-wrapper">
               <!-- 加载状态 -->
               <div v-if="loadingSolution" class="loading-state">
                 <div class="loading-spinner"></div>
@@ -175,39 +175,56 @@
 
               <!-- 题解内容 -->
               <div v-else-if="solution" class="solution-content">
+                <!-- 题目分析 -->
                 <div class="solution-section">
                   <h3>题目分析</h3>
-                  <p>{{ solution.analysis }}</p>
+                  <div class="solution-text" v-html="formatMarkdown(solution.analysis)"></div>
               </div>
-                <div class="solution-section">
-                  <h3>解题方法</h3>
-                  <div v-for="(approach, index) in solution.approaches" 
-                       :key="index" 
-                       class="approach">
-                    <h4>{{ approach.name }}</h4>
+                
+                <!-- 解法列表 -->
+                <div v-if="solution.approaches && solution.approaches.length" class="solution-section">
+                  <div v-for="(approach, index) in solution.approaches" :key="index" class="approach-section">
+                    <h3>解法 {{ index + 1 }}: {{ approach.name }}</h3>
                     <p>{{ approach.description }}</p>
-                    <div class="complexity">
-                      <span>时间复杂度: {{ approach.timeComplexity }}</span>
-                      <span>空间复杂度: {{ approach.spaceComplexity }}</span>
+                    
+                    <div class="complexity-info">
+                      <span class="complexity">时间复杂度: {{ approach.timeComplexity }}</span>
+                      <span class="complexity">空间复杂度: {{ approach.spaceComplexity }}</span>
             </div>
-                    <div class="code-implementations">
-                      <div class="code-header">
-                        <select v-model="selectedLanguage" class="language-select">
-                          <option value="c">C</option>
-                          <option value="python">Python</option>
-                          <option value="java">Java</option>
-                        </select>
+                    
+                    <!-- 代码实现 -->
+                    <div v-if="Object.keys(approach.code || {}).length > 0" class="code-section">
+                      <h4>代码实现</h4>
+                      <div v-if="Object.keys(approach.code || {}).length > 1" class="language-tabs">
+                        <button 
+                          v-for="lang in Object.keys(approach.code || {})" 
+                          :key="lang"
+                          :class="['language-tab', { 'active': getSelectedLanguage(approach) === lang }]"
+                          @click="selectLanguage(approach, lang)"
+                          class="language-tab"
+                        >
+                          {{ getLangName(lang) }}
+                        </button>
           </div>
-                      <pre><code>{{ approach.code[selectedLanguage] }}</code></pre>
+                      
+                      <div class="code-block">
+                        <pre><code>{{ getApproachCode(approach) }}</code></pre>
+                        <button class="copy-code-btn" @click="copyCode(getApproachCode(approach))">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                          </svg>
+                          复制
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div class="solution-section">
+                
+                <!-- 解题技巧 -->
+                <div v-if="solution.tips && solution.tips.length" class="solution-section">
                   <h3>解题技巧</h3>
-                  <ul>
-                    <li v-for="(tip, index) in solution.tips" :key="index">
-                      {{ tip }}
-                    </li>
+                  <ul class="tips-list">
+                    <li v-for="(tip, index) in solution.tips" :key="index">{{ tip }}</li>
                   </ul>
                 </div>
               </div>
@@ -277,6 +294,7 @@ const isGenerating = ref(false)
 const isSolutionLoading = ref(false)
 const userAnswer = ref('')
 const gradingResult = ref(null)
+const selectedCodeLanguage = ref('c')
 
 const generateTemplate = async (problem, language) => {
   try {
@@ -517,8 +535,15 @@ const toggleDescription = () => {
 
 const openSolution = async () => {
   try {
+    // 每次重新打开题解时，重置状态
     showSolution.value = true
     loadingSolution.value = true
+    solutionError.value = null
+    solution.value = { 
+      analysis: '正在生成题解...',
+      approaches: [],
+      tips: []
+    }
     
     if (!problem.value) {
       throw new Error('题目信息未加载完成，请稍后再试')
@@ -526,16 +551,23 @@ const openSolution = async () => {
 
     console.log('开始生成题解，题目信息:', problem.value)
 
-    const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-      model: 'qwen-plus',
-      messages: [
-        {
-          role: "system",
-          content: "你是一个专业的编程题解析助手。请用中文详细解释解题思路，并提供多种实现方案。请确保返回的是合法的JSON格式。"
-        },
-        {
-          role: "user",
-          content: `请分析以下编程题目并提供详细解答：
+    const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'qwen-plus',
+        stream: true, // 启用流式输出
+        messages: [
+          {
+            role: "system",
+            content: "你是一个专业的编程题解析助手。请用中文详细解释解题思路，并提供多种实现方案。"
+          },
+          {
+            role: "user",
+            content: `请分析以下编程题目并提供详细解答：
 
 题目：${problem.value.title}
 
@@ -549,63 +581,288 @@ ${problem.value.examples.map((example, index) => `
 输出：${example.output}
 ${example.explanation ? `解释：${example.explanation}` : ''}`).join('\n')}` : ''}
 
-请返回以下格式的JSON（确保是合法的JSON格式）：
-{
-  "analysis": "详细的题目分析和解题思路",
-  "approaches": [
-    {
-      "name": "解法名称",
-      "description": "解法描述",
-      "timeComplexity": "时间复杂度",
-      "spaceComplexity": "空间复杂度",
-      "code": {
-        "c": "C语言代码",
-        "python": "Python代码",
-        "java": "Java代码"
-      }
-    }
-  ],
-  "tips": ["解题技巧1", "解题技巧2"]
-}`
-        }
-      ]
-    }, {
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json'
-      }
+请以下面的结构回答（但不要使用JSON格式）：
+
+## 题目分析
+（在这里详细分析题目）
+
+## 解法一：[解法名称]
+（解法描述）
+时间复杂度：
+空间复杂度：
+
+### 代码实现
+\`\`\`python
+# Python实现
+\`\`\`
+
+\`\`\`java
+// Java实现
+\`\`\`
+
+\`\`\`c
+// C语言实现
+\`\`\`
+
+## 解法二：[解法名称]
+（如有多种解法，则继续提供）
+
+## 解题技巧
+- 技巧1
+- 技巧2
+- 技巧3`
+          }
+        ]
+      })
     })
+    
+    if (!response.ok) {
+      throw new Error('请求失败，请稍后再试')
+    }
+    
+    // 处理流式响应
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let currentContent = ''
+    
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      
+      const text = decoder.decode(value, { stream: true })
+      const lines = text.split('\n')
+      
+      for (const line of lines) {
+        if (!line.trim() || !line.startsWith('data:')) continue
+        
+        try {
+          const jsonStr = line.slice(5).trim()
+          if (!jsonStr || jsonStr === '[DONE]') continue
+          
+          const data = JSON.parse(jsonStr)
+          if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+            const content = data.choices[0].delta.content
+            currentContent += content
+            
+            // 更新solution对象的analysis字段以实现实时显示
+            solution.value = {
+              analysis: currentContent,
+              approaches: [],
+              tips: []
+            }
+          }
+        } catch (e) {
+          console.error('解析流式响应失败:', e, line)
+        }
+      }
+    }
+    
+    // 解析结构化内容
+    const content = currentContent
+      .replace(/---/g, '') // 去除markdown分隔符
+      .replace(/\r\n/g, '\n') // 统一换行符
 
-    console.log('API 响应:', response.data)
+    console.log("完整响应内容:", content)
 
-    const result = response.data.choices[0].message.content
-    console.log('AI 返回的原始内容:', result)
+    // 标准化sections分割
+    const sectionDelimiter = '##'
+    const sections = content.split(sectionDelimiter)
+      .filter(Boolean)
+      .map(s => s.trim())
 
-    try {
-      // 提取 ```json 和 ``` 之间的内容
-      let cleanedResult = result
-        // 提取 ```json 和 ``` 之间的内容
-        .match(/```json\n([\s\S]*?)\n```/)?.[1] || result
-        .trim();
-
-      console.log('清理后的内容:', cleanedResult)
-
-      solution.value = JSON.parse(cleanedResult)
-      console.log('清理后解析成功:', solution.value)
-
-    } catch (e) {
-      console.error('JSON 解析失败:', e)
-      throw new Error('题解格式错误')
+    // 提取题目分析部分
+    let analysis = ''
+    for (const section of sections) {
+      if (section.startsWith('题目分析')) {
+        analysis = section.replace('题目分析', '').trim()
+        break
+      }
     }
 
-    // 验证解析后的数据结构
-    if (!solution.value.analysis || !Array.isArray(solution.value.approaches)) {
-      throw new Error('题解格式不完整')
+    // 提取解法部分
+    const approaches = []
+    const approachTitles = []
+    let currentApproach = null
+
+    for (const section of sections) {
+      const isApproachSection = 
+        section.startsWith('解法一') || 
+        section.startsWith('解法二') || 
+        section.startsWith('解法三') || 
+        section.startsWith('解法1') || 
+        section.startsWith('解法2') ||
+        section.startsWith('解法3')
+      
+      if (isApproachSection) {
+        // 提取解法标题和名称
+        const titleLine = section.split('\n')[0]
+        const nameMatch = titleLine.match(/解法[一二三四五\d]+[:：]?\s*(.*)/)
+        const name = nameMatch ? nameMatch[1].trim() : titleLine.trim()
+        
+        // 提取解法内容
+        const descLines = section.split('\n').slice(1)
+        const description = descLines[0]?.trim() || ''
+        
+        // 提取时间复杂度
+        const timeMatch = section.match(/时间复杂度[:：]?\s*([^,，\n]*)/)
+        const timeComplexity = timeMatch ? timeMatch[1].trim() : 'O(n)'
+        
+        // 提取空间复杂度
+        const spaceMatch = section.match(/空间复杂度[:：]?\s*([^,，\n]*)/)
+        const spaceComplexity = spaceMatch ? spaceMatch[1].trim() : 'O(n)'
+        
+        // 查找代码块
+        const codeBlocks = {}
+        
+        // 查找Python代码
+        const pythonCodeRegex = /```python[\s\r\n]+([\s\S]*?)```/g
+        let pythonMatch
+        while ((pythonMatch = pythonCodeRegex.exec(section)) !== null) {
+          if (pythonMatch[1]?.trim()) {
+            codeBlocks.python = pythonMatch[1].trim()
+            console.log("找到Python代码块")
+          }
+        }
+        
+        // 查找Java代码
+        const javaCodeRegex = /```java[\s\r\n]+([\s\S]*?)```/g
+        let javaMatch
+        while ((javaMatch = javaCodeRegex.exec(section)) !== null) {
+          if (javaMatch[1]?.trim()) {
+            codeBlocks.java = javaMatch[1].trim()
+            console.log("找到Java代码块")
+          }
+        }
+        
+        // 查找C代码
+        const cCodeRegex = /```c[\s\r\n]+([\s\S]*?)```/g
+        let cMatch
+        while ((cMatch = cCodeRegex.exec(section)) !== null) {
+          if (cMatch[1]?.trim()) {
+            codeBlocks.c = cMatch[1].trim()
+            console.log("找到C代码块")
+          }
+        }
+        
+        // 查找不指定语言的代码块
+        if (Object.keys(codeBlocks).length === 0) {
+          const genericCodeRegex = /```[\s\r\n]*([\s\S]*?)```/g
+          let genericMatch
+          while ((genericMatch = genericCodeRegex.exec(section)) !== null) {
+            if (genericMatch[1]?.trim()) {
+              codeBlocks.general = genericMatch[1].trim()
+              console.log("找到通用代码块")
+            }
+          }
+        }
+        
+        // 检查代码块部分的标题和内容匹配
+        const codeImplSection = section.indexOf('### 代码实现') > -1 ? 
+          section.split('### 代码实现')[1] : null
+          
+        if (codeImplSection && Object.keys(codeBlocks).length === 0) {
+          // 检查代码块
+          const pythonImplMatch = codeImplSection.match(/```python[\s\r\n]+([\s\S]*?)```/m)
+          if (pythonImplMatch && pythonImplMatch[1]?.trim()) {
+            codeBlocks.python = pythonImplMatch[1].trim()
+            console.log("代码实现部分找到Python代码")
+          }
+          
+          const javaImplMatch = codeImplSection.match(/```java[\s\r\n]+([\s\S]*?)```/m)
+          if (javaImplMatch && javaImplMatch[1]?.trim()) {
+            codeBlocks.java = javaImplMatch[1].trim()
+            console.log("代码实现部分找到Java代码")
+          }
+          
+          const cImplMatch = codeImplSection.match(/```c[\s\r\n]+([\s\S]*?)```/m)
+          if (cImplMatch && cImplMatch[1]?.trim()) {
+            codeBlocks.c = cImplMatch[1].trim()
+            console.log("代码实现部分找到C代码")
+          }
+        }
+        
+        console.log(`解法 "${name}" 找到 ${Object.keys(codeBlocks).length} 个代码块`)
+        
+        approaches.push({
+          name,
+          description,
+          timeComplexity,
+          spaceComplexity,
+          code: codeBlocks
+        })
+        
+        // 记录已处理的解法标题
+        approachTitles.push(titleLine.trim())
+      } else if (section.includes('```python') || section.includes('```java') || section.includes('```c')) {
+        // 处理单独的代码实现章节（可能不在解法章节内）
+        let language = null
+        let code = null
+        
+        if (section.includes('```python')) {
+          language = 'python'
+          const match = section.match(/```python[\s\r\n]+([\s\S]*?)```/m)
+          if (match && match[1]) code = match[1].trim()
+        } else if (section.includes('```java')) {
+          language = 'java'
+          const match = section.match(/```java[\s\r\n]+([\s\S]*?)```/m)
+          if (match && match[1]) code = match[1].trim()
+        } else if (section.includes('```c')) {
+          language = 'c'
+          const match = section.match(/```c[\s\r\n]+([\s\S]*?)```/m)
+          if (match && match[1]) code = match[1].trim()
+        }
+        
+        if (language && code) {
+          const titleLine = section.split('\n')[0].trim()
+          
+          // 检查这是否是一个新的解法或是现有解法的代码片段
+          const existingApproach = approaches.find(a => a.name === titleLine)
+          
+          if (existingApproach) {
+            // 添加到现有解法
+            existingApproach.code[language] = code
+            console.log(`为解法 "${titleLine}" 添加 ${language} 代码`)
+          } else if (!approachTitles.includes(titleLine)) {
+            // 添加新解法
+            approaches.push({
+              name: titleLine,
+              description: titleLine,
+              timeComplexity: 'O(n)',
+              spaceComplexity: 'O(n)',
+              code: { [language]: code }
+            })
+            console.log(`添加新解法 "${titleLine}" 包含 ${language} 代码`)
+          }
+        }
+      }
     }
 
+    // 提取解题技巧
+    const tips = []
+    for (const section of sections) {
+      if (section.startsWith('解题技巧')) {
+        const tipLines = section.replace('解题技巧', '').trim().split(/[-•]/)
+        for (const line of tipLines) {
+          const tip = line.trim()
+          if (tip) tips.push(tip)
+        }
+        break
+      }
+    }
+
+    // 更新最终结构化的solution对象
+    solution.value = {
+      analysis,
+      approaches,
+      tips
+    }
+
+    console.log('Final solution object:', JSON.stringify(solution.value, null, 2))
+    
   } catch (error) {
     console.error('生成题解失败:', error)
-    solutionError.value = error.message
+    solutionError.value = '题解生成失败，请稍后再试'
+    solution.value = null
   } finally {
     loadingSolution.value = false
   }
@@ -684,12 +941,112 @@ const handleBack = () => {
 
 const submitAnswer = async () => {
   try {
+    // 设置提交状态
+    isSubmitting.value = true
+    submissionModal.value = {
+      show: true,
+      title: '正在评估您的答案',
+      content: `
+        <div class="submission-result">
+          <div class="loading-indicator">
+            <div class="spinner"></div>
+            <p>正在评估您的代码，请稍候...</p>
+          </div>
+        </div>
+      `
+    }
+    
     const result = await submitAnswerToAI(problem.value.id, userAnswer.value, problem.value.language)
     gradingResult.value = result
+    
+    // 显示结果
+    submissionModal.value = {
+      show: true,
+      title: result.success ? '提交成功' : '提交失败',
+      content: `
+        <div class="submission-result">
+          <div class="score-section">
+            <h3>得分：${result.score || 0}</h3>
+            <div class="complexity-info">
+              <p>时间复杂度：${result.time_complexity || 'N/A'}</p>
+              <p>空间复杂度：${result.space_complexity || 'N/A'}</p>
+            </div>
+          </div>
+          
+          <div class="test-cases">
+            <h3>测试用例</h3>
+            ${result.test_cases ? result.test_cases.map((test, index) => `
+              <div class="test-case ${test.passed ? 'passed' : 'failed'}">
+                <div class="test-header">
+                  <span>测试用例 ${index + 1}</span>
+                  <span class="status">${test.passed ? '通过' : '失败'}</span>
+                </div>
+                <div class="test-details">
+                  <p>输入：${test.input || 'N/A'}</p>
+                  <p>期望输出：${test.expected || 'N/A'}</p>
+                  <p>实际输出：${test.actual || 'N/A'}</p>
+                </div>
+              </div>
+            `).join('') : '<p>未提供测试用例结果</p>'}
+          </div>
+          
+          ${result.suggestions && result.suggestions.length > 0 ? `
+            <div class="suggestions">
+              <h3>改进建议</h3>
+              <ul>
+                ${result.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        </div>
+      `
+    }
   } catch (error) {
     console.error('提交答案失败:', error)
-    alert('提交答案失败，请重试。')
+    submissionModal.value = {
+      show: true,
+      title: '提交失败',
+      content: '<p>提交答案失败，请稍后重试。</p>'
+    }
+  } finally {
+    isSubmitting.value = false
   }
+}
+
+// 添加辅助函数来处理Markdown格式
+const formatMarkdown = (text) => {
+  if (!text) return ''
+  
+  // 处理代码块
+  let formatted = text.replace(/```([\w]*)\n([\s\S]*?)```/g, 
+    '<pre class="code-block"><code>$2</code></pre>')
+  
+  // 处理粗体
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  
+  // 处理斜体
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  
+  // 处理行内代码
+  formatted = formatted.replace(/`(.*?)`/g, '<code class="inline-code">$1</code>')
+  
+  // 处理换行
+  formatted = formatted.replace(/\n/g, '<br>')
+  
+  return formatted
+}
+
+// 获取语言显示名称
+const getLangName = (lang) => {
+  const langMap = {
+    'python': 'Python',
+    'java': 'Java',
+    'c': 'C',
+    'cpp': 'C++',
+    'javascript': 'JavaScript',
+    'typescript': 'TypeScript'
+  }
+  return langMap[lang] || lang
 }
 
 onMounted(async () => {
@@ -749,6 +1106,45 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+// 辅助函数，获取代码块内容
+const getApproachCode = (approach) => {
+  if (!approach.code || Object.keys(approach.code).length === 0) {
+    return '// 没有提供代码'
+  }
+  
+  // 首先尝试获取选中语言的代码
+  if (approach.code[selectedCodeLanguage.value]) {
+    return approach.code[selectedCodeLanguage.value]
+  }
+  
+  // 如果选中语言没有代码，则返回第一个可用的代码
+  const availableLanguages = Object.keys(approach.code)
+  if (availableLanguages.length > 0) {
+    // 自动选择第一个可用的语言
+    selectedCodeLanguage.value = availableLanguages[0]
+    return approach.code[availableLanguages[0]]
+  }
+  
+  return '// 没有提供代码'
+}
+
+// 添加辅助函数来处理HTML转义
+const escapeHtml = (html) => {
+  return html.replace(/&/g, '&amp;')
+             .replace(/</g, '&lt;')
+             .replace(/>/g, '&gt;')
+             .replace(/"/g, '&quot;')
+             .replace(/'/g, '&#39;')
+}
+
+const getSelectedLanguage = (approach) => {
+  return Object.keys(approach.code).find(lang => approach.code[lang]) || selectedCodeLanguage.value
+}
+
+const selectLanguage = (approach, lang) => {
+  selectedCodeLanguage.value = lang
+}
 </script>
 
 <style scoped>
@@ -1622,6 +2018,8 @@ onMounted(async () => {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: modalSlideIn 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -1630,6 +2028,7 @@ onMounted(async () => {
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -1657,6 +2056,7 @@ onMounted(async () => {
 .modal-content {
   padding: 24px;
   overflow-y: auto;
+  flex-grow: 1;
   max-height: calc(90vh - 70px);
 }
 
@@ -2010,5 +2410,281 @@ onMounted(async () => {
 .loading-state p {
   margin-top: 16px;
   font-size: 14px;
+}
+
+/* 题解内容样式 */
+.solution-content {
+  animation: fadeIn 0.3s ease;
+}
+
+.solution-section {
+  margin-bottom: 24px;
+  animation: slideUp 0.3s ease;
+}
+
+.solution-section h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: var(--vt-c-text-1);
+  border-bottom: 1px solid var(--vt-c-divider-light);
+  padding-bottom: 8px;
+}
+
+.solution-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--vt-c-text-1);
+  white-space: pre-line;
+}
+
+.approach-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--vt-c-divider-light);
+}
+
+.complexity-info {
+  margin: 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.complexity {
+  font-size: 14px;
+  padding: 4px 8px;
+  background: rgba(79, 110, 247, 0.1);
+  color: #4F6EF7;
+  border-radius: 4px;
+}
+
+.code-section {
+  margin-top: 16px;
+}
+
+.code-section h4 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.language-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.language-tab {
+  padding: 4px 12px;
+  border: 1px solid var(--vt-c-divider-light);
+  border-radius: 4px;
+  background: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.language-tab.active {
+  background: #4F6EF7;
+  color: white;
+  border-color: #4F6EF7;
+}
+
+.code-block {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  font-family: 'Fira Code', monospace;
+  position: relative;
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 16px 0;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.code-block pre {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: visible;
+  white-space: pre;
+  word-wrap: normal;
+}
+
+.code-block code {
+  font-family: 'Fira Code', monospace;
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+  color: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+  .code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .code-block code {
+    color: #d4d4d4;
+  }
+}
+
+.copy-code-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.code-block:hover .copy-code-btn {
+  opacity: 1;
+}
+
+.tips-list {
+  padding-left: 20px;
+}
+
+.tips-list li {
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.tips-list li::before {
+  content: '•';
+  position: absolute;
+  left: -15px;
+  color: #4F6EF7;
+}
+
+.inline-code {
+  font-family: 'Fira Code', monospace;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* 流式输出动画 */
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--vt-c-text-1); }
+}
+
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.loading-indicator .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(79, 110, 247, 0.2);
+  border-top-color: #4F6EF7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .approach-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .code-block {
+    background: #1e1e1e;
+  }
+  
+  .complexity {
+    background: rgba(79, 110, 247, 0.2);
+  }
+  
+  .inline-code {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* 题解模态框样式优化 */
+.solution-container {
+  height: 90vh;
+  max-height: 90vh;
+}
+
+.solution-content-wrapper {
+  height: calc(90vh - 70px);
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.approach-section {
+  margin-bottom: 36px;
+  padding: 20px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--vt-c-divider-light);
+}
+
+@media (max-height: 768px) {
+  .solution-container {
+    height: 95vh;
+    max-height: 95vh;
+  }
+  
+  .solution-content-wrapper {
+    height: calc(95vh - 70px);
+  }
+  
+  .code-block {
+    max-height: 300px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .copy-code-btn {
+    background: rgba(30, 30, 30, 0.9);
+    border-color: #444;
+    color: #ccc;
+  }
 }
 </style> 

@@ -277,7 +277,7 @@ export const gradePaperAnswers = async (paper, answers) => {
     };
 
     // 评分选择题、判断题等客观题
-    ['choice', 'truefalse', 'completion', 'matching'].forEach(type => {
+    ['choice', 'truefalse', 'completion'].forEach(type => {
       if (paper[type] && answers[type]) {
         paper[type].forEach((question, index) => {
           if (answers[type][index] === question.answer) {
@@ -287,6 +287,42 @@ export const gradePaperAnswers = async (paper, answers) => {
         });
       }
     });
+    
+    // 单独处理匹配题，因为需要比较数组
+    if (paper.matching && answers.matching) {
+      paper.matching.forEach((question, index) => {
+        // 检查用户答案是否正确
+        // 新规则：匹配题必须全对才得分，错一个就得0分
+        let isFullyCorrect = true;
+        
+        // 确保用户答案有效
+        if (Array.isArray(answers.matching[index]) && 
+            answers.matching[index].length === question.answer.length) {
+          
+          // 检查每个匹配是否正确
+          for (let leftIndex = 0; leftIndex < question.answer.length; leftIndex++) {
+            // 在匹配题中，answer格式为 [[leftIndex, rightIndex], ...]
+            const correctRightIndex = question.answer.find(pair => pair[0] === leftIndex)?.[1];
+            const userRightIndex = answers.matching[index][leftIndex];
+            
+            // 如果任何一个匹配不正确，则整个题得0分
+            if (userRightIndex !== correctRightIndex) {
+              isFullyCorrect = false;
+              break;
+            }
+          }
+        } else {
+          // 用户答案格式无效
+          isFullyCorrect = false;
+        }
+        
+        // 全对才得分
+        if (isFullyCorrect) {
+          scores.matching += question.score;
+          totalScore += question.score;
+        }
+      });
+    }
 
     // 使用 AI 评分编程题
     if (paper.programming && answers.programming) {

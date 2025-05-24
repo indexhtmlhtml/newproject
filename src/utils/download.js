@@ -1,5 +1,47 @@
 // 下载为 Word 文档
 export const downloadPaperAsWord = (paper) => {
+  // 自动补全所有题型和题目字段
+  const fillQuestion = (q, type) => {
+    if (!q) return {};
+    // 题干
+    if (!('content' in q) || !q.content) q.content = '[题干缺失]';
+    // 分值
+    if (!('score' in q)) q.score = '?';
+    // 答案
+    if (!('answer' in q)) q.answer = '[无]';
+    // 选项
+    if (type === 'choice') {
+      if (!('options' in q) || !q.options) q.options = [];
+      if (Array.isArray(q.options)) {
+        q.options = q.options.map(opt => opt ?? '[空]');
+      } else if (typeof q.options === 'object') {
+        Object.keys(q.options).forEach(k => {
+          if (!q.options[k]) q.options[k] = '[空]';
+        });
+      }
+    }
+    // 编程题示例
+    if (type === 'programming') {
+      if (!('example' in q) || !q.example) q.example = { input: '', output: '' };
+      if (!('input' in q.example)) q.example.input = '';
+      if (!('output' in q.example)) q.example.output = '';
+    }
+    // 匹配题
+    if (type === 'matching') {
+      if (!('leftItems' in q) || !Array.isArray(q.leftItems)) q.leftItems = [];
+      if (!('rightItems' in q) || !Array.isArray(q.rightItems)) q.rightItems = [];
+      if (!('answer' in q) || !Array.isArray(q.answer)) q.answer = [];
+    }
+    return q;
+  };
+
+  // 对所有题型做补全
+  ['choice','programming','completion','truefalse','shortanswer','matching'].forEach(type => {
+    if (Array.isArray(paper[type])) {
+      paper[type] = paper[type].map(q => fillQuestion(q, type));
+    }
+  });
+
   // 创建文档内容
   let content = `
     <h1 style="text-align: center;">${paper.title || '编程能力测试'}</h1>

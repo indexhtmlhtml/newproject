@@ -229,6 +229,7 @@ const searchInput = ref(null)
 const responseContainer = ref(null)
 const showSuggestions = ref(false)
 const suggestions = ref([])
+const searchHistory = ref([])
 let searchTimeout = null
 let currentResponse = ''
 
@@ -296,6 +297,16 @@ onMounted(() => {
     isPageReady.value = true
     searchInput.value?.focus()
   }, 100)
+  
+  // 加载搜索历史
+  try {
+    const savedHistory = localStorage.getItem('searchHistory')
+    if (savedHistory) {
+      searchHistory.value = JSON.parse(savedHistory)
+    }
+  } catch (error) {
+    console.error('加载搜索历史失败:', error)
+  }
 })
 
 onUnmounted(() => {
@@ -504,6 +515,39 @@ const updateRelatedSearches = () => {
     `${searchQuery.value} 面试题`,
     `${searchQuery.value} 常见问题`
   ]
+}
+
+// 处理流式响应内容
+const processStreamedContent = (content) => {
+  // 将文本按行分割并过滤空行
+  const lines = content.split('\n').filter(line => line.trim() !== '')
+  streamedContent.value = lines
+}
+
+// 滚动到底部
+const scrollToBottom = () => {
+  if (responseContainer.value) {
+    setTimeout(() => {
+      responseContainer.value.scrollTop = responseContainer.value.scrollHeight
+    }, 50)
+  }
+}
+
+// 生成相关问题建议
+const generateSuggestedQuestions = async () => {
+  try {
+    // 基于当前搜索生成相关问题
+    const relatedQuestions = [
+      `${searchQuery.value}的最佳实践`,
+      `如何优化${searchQuery.value}`,
+      `${searchQuery.value}常见问题`,
+      `${searchQuery.value}相关算法`,
+      `${searchQuery.value}的替代方案`
+    ]
+    aiSuggestedQuestions.value = relatedQuestions
+  } catch (error) {
+    console.error('生成问题建议失败:', error)
+  }
 }
 
 watch(searchQuery, () => {
